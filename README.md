@@ -1,9 +1,11 @@
 # クローン
 git clone https://github.com/xxkhyn/bado.git
+
 cd bado
 
 # 仮想環境
 python -m venv .venv
+
 .venv\Scripts\activate  # Windows（Mac/Linux: source .venv/bin/activate）
 
 # 依存パッケージ
@@ -15,6 +17,7 @@ copy .env.example .env   # Windows（Mac/Linux: cp .env.example .env）
 
 # マイグレーション & 管理ユーザー
 python manage.py migrate
+
 python manage.py createsuperuser
 
 # 起動
