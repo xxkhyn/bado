@@ -1,6 +1,6 @@
 # クローン
-git clone https://github.com/<YOUR_NAME>/<REPO>.git
-cd <REPO>
+git clone https://github.com/xxkhyn/bado.git
+cd bado
 
 # 仮想環境
 python -m venv .venv
