@@ -1,0 +1,64 @@
+{% load custom_filters %}
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ month }}月の予定</title>
+  <style>
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      width: 14%;
+      height: 100px;
+      vertical-align: top;
+      padding: 5px;
+    }
+    th {
+      background: #f5f5f5;
+      text-align: center;
+    }
+    .today {
+      background: #fff6a5;
+    }
+    .event {
+      font-size: 12px;
+      margin-top: 3px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>{{ month }}月の予定</h1>
+  <table>
+    <tr>
+      <th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
+    </tr>
+    <tr>
+      {% for day in month_days %}
+        {% if forloop.counter0|divisibleby:7 and not forloop.first %}
+          </tr><tr>
+        {% endif %}
+        <td class="{% if day == today %}today{% endif %}">
+          <strong>{{ day.day }}</strong>
+          {% if day.month == month %}
+            {% for e in events_by_day|get_item:day.day %}
+              <div class="event">{{ e.title }}</div>
+            {% endfor %}
+          {% endif %}
+        </td>
+      {% endfor %}
+    </tr>
+  </table>
+</body>
+</html>

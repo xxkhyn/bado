@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Circle</title>
+</head>
+<body>
+<header>
+  <a href="/">Circle</a>
+  <nav>
+    {% if user.is_authenticated %}
+      ようこそ、{{ user.username }} / <a href="/accounts/logout/">ログアウト</a>
+    {% else %}
+      <a href="/accounts/google/login/">Googleでログイン</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
