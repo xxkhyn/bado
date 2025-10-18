@@ -1,64 +1,221 @@
+{% load static %}
 {% load custom_filters %}
-
 
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>{{ month }}月の予定</title>
+  <meta charset="UTF-8" />
+  <title>{{ year }}年 {{ month }}月の予定</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      width: 14%;
-      height: 100px;
-      vertical-align: top;
-      padding: 5px;
-    }
-    th {
-      background: #f5f5f5;
-      text-align: center;
-    }
-    .today {
-      background: #fff6a5;
-    }
-    .event {
-      font-size: 12px;
-      margin-top: 3px;
-      color: red;
-    }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif; margin: 0; background: #0b0f1a; color: #e5e7eb;}
+    .wrap { max-width: 1000px; margin: 24px auto; padding: 0 16px;}
+    .bar { display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px;}
+    .bar .nav a{ color:#93c5fd; text-decoration:none; margin:0 6px; }
+    .cal { width:100%; border-collapse: collapse; background:#0f172a; border-radius: 12px; overflow:hidden; }
+    .cal th, .cal td { border: 1px solid #1f2937; padding: 10px; vertical-align: top; width:14.2857%; height:120px; }
+    .cal th{ background:#111827; font-weight:600; color:#9ca3af; text-align:center;}
+    .daynum{ font-weight:700; color:#e5e7eb; }
+    .today .daynum{ background:#60a5fa; color:#0b0f1a; padding:2px 8px; border-radius:999px; }
+    .cell{ position:relative; cursor:pointer; }
+    .event{ font-size:12px; background:#1f2937; border:1px solid #374151; padding:6px 8px; border-radius:8px; margin-top:6px; }
+    .event:hover{ background:#2a3648; }
+    .muted{ color:#6b7280; }
+    .btn{ color:#0b0f1a; background:#93c5fd; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .btn:hover{ filter:brightness(1.05); }
+
+    /* モーダル */
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; }
+    .modal{ width: min(500px, 92vw); background:#0f172a; border:1px solid #1f2937; border-radius:12px; padding:16px; }
+    .field{ margin:10px 0;}
+    .field label{ display:block; font-size:12px; color:#9ca3af; margin-bottom:4px;}
+    .field input, .field textarea{ width:100%; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:8px; padding:8px; }
+    .row{ display:flex; gap:10px; }
   </style>
 </head>
 <body>
-  <h1>{{ month }}月の予定</h1>
-  <table>
-    <tr>
-      <th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
-    </tr>
-    <tr>
-      {% for day in month_days %}
-        {% if forloop.counter0|divisibleby:7 and not forloop.first %}
-          </tr><tr>
-        {% endif %}
-        <td class="{% if day == today %}today{% endif %}">
-          <strong>{{ day.day }}</strong>
-          {% if day.month == month %}
+  <div class="wrap">
+    <div class="bar">
+      <div class="nav">
+        <a href="?y={{ prev_y }}&m={{ prev_m }}">← 前の月</a>
+        <a href="?y={{ next_y }}&m={{ next_m }}">次の月 →</a>
+      </div>
+      <h2>{{ year }}年 {{ month }}月</h2>
+      <button class="btn" id="addTodayBtn">今日に追加</button>
+    </div>
+
+    <table class="cal">
+      <thead>
+        <tr>
+          <th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% comment %}
+          1日が何曜日かで前の空白を入れたい…などの本格レイアウトは後で。
+          まずはシンプルに1〜末日を並べる。
+        {% endcomment %}
+        <tr>
+        {% for day in month_days %}
+          {% if forloop.counter0|divisibleby:7 and not forloop.first %}</tr><tr>{% endif %}
+          <td class="cell {% if day == today %}today{% endif %}" data-date="{{ day|date:'Y-m-d' }}">
+            <div class="daynum">{{ day.day }}</div>
+
             {% for e in events_by_day|get_item:day.day %}
-              <div class="event">{{ e.title }}</div>
+              <div class="event" data-id="{{ e.id }}" data-title="{{ e.title|escape }}"
+                   data-start="{{ e.start|date:'c' }}" data-end="{% if e.end %}{{ e.end|date:'c' }}{% endif %}"
+                   data-desc="{{ e.description|default_if_none:''|escape }}">
+                {{ e.title }}
+              </div>
+            {% empty %}
+              <div class="muted" style="font-size:12px; margin-top:6px;">予定なし</div>
             {% endfor %}
-          {% endif %}
-        </td>
-      {% endfor %}
-    </tr>
-  </table>
+          </td>
+        {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- モーダル -->
+  <div class="modal-backdrop" id="modalBg">
+    <div class="modal">
+      <h3 id="modalTitle" style="margin:0 0 8px 0;">予定を追加</h3>
+      <div class="field">
+        <label>タイトル</label>
+        <input type="text" id="fTitle" />
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1;">
+          <label>開始 (YYYY-MM-DDTHH:mm)</label>
+          <input type="text" id="fStart" placeholder="2025-09-03T10:00" />
+        </div>
+        <div class="field" style="flex:1;">
+          <label>終了 (任意 / 空でもOK)</label>
+          <input type="text" id="fEnd" placeholder="2025-09-03T11:00" />
+        </div>
+      </div>
+      <div class="field">
+        <label>メモ</label>
+        <textarea id="fDesc" rows="3"></textarea>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
+        <button class="btn" id="saveBtn">保存</button>
+        <button class="btn" id="deleteBtn" style="background:#fca5a5; display:none;">削除</button>
+        <button class="btn" id="cancelBtn" style="background:#d1d5db;">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modalBg = document.getElementById('modalBg');
+    const fTitle = document.getElementById('fTitle');
+    const fStart = document.getElementById('fStart');
+    const fEnd   = document.getElementById('fEnd');
+    const fDesc  = document.getElementById('fDesc');
+    const saveBtn = document.getElementById('saveBtn');
+    const delBtn  = document.getElementById('deleteBtn');
+    const modalTitle = document.getElementById('modalTitle');
+
+    let editingId = null; // null=新規、数値=編集
+
+    function openModal(payload) {
+      modalBg.style.display = 'flex';
+      if (payload) {
+        editingId = payload.id;
+        modalTitle.textContent = '予定を編集';
+        fTitle.value = payload.title || '';
+        fStart.value = (payload.start || '').slice(0,16);
+        fEnd.value   = payload.end ? payload.end.slice(0,16) : '';
+        fDesc.value  = payload.description || '';
+        delBtn.style.display = 'inline-block';
+      } else {
+        editingId = null;
+        modalTitle.textContent = '予定を追加';
+        fTitle.value = '';
+        fStart.value = '';
+        fEnd.value = '';
+        fDesc.value = '';
+        delBtn.style.display = 'none';
+      }
+    }
+    function closeModal(){ modalBg.style.display = 'none'; }
+
+    document.getElementById('cancelBtn').onclick = closeModal;
+
+    // セルクリックで新規作成
+    document.querySelectorAll('.cell').forEach(td => {
+      td.addEventListener('click', (e) => {
+        // イベントdivクリックは別処理にしたいので、ここはセル直クリック時のみ
+        if (e.target.classList.contains('event')) return;
+
+        const d = td.dataset.date;
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,'0');
+        const mm = String(now.getMinutes()).padStart(2,'0');
+        openModal({
+          id: null,
+          title: '',
+          start: `${d}T${hh}:${mm}`,
+          end: '',
+          description: ''
+        });
+        fStart.value = `${d}T09:00`;
+      });
+    });
+
+    // 既存イベントクリックで編集
+    document.querySelectorAll('.event').forEach(div => {
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openModal({
+          id: div.dataset.id,
+          title: div.dataset.title,
+          start: div.dataset.start,
+          end: div.dataset.end || '',
+          description: div.dataset.desc || ''
+        });
+      });
+    });
+
+    // 「今日に追加」
+    document.getElementById('addTodayBtn').onclick = () => {
+      const d = new Date();
+      const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+      openModal({ id:null, title:'', start:`${y}-${m}-${day}T09:00`, end:'', description:'' });
+    };
+
+    // 保存
+    saveBtn.onclick = async () => {
+      const payload = {
+        title: fTitle.value.trim() || '無題',
+        start: fStart.value ? new Date(fStart.value).toISOString() : null,
+        end:   fEnd.value   ? new Date(fEnd.value).toISOString()   : null,
+        description: fDesc.value || ''
+      };
+      if (!payload.start) { alert('開始を入力してね'); return; }
+
+      const url = editingId
+        ? `/api/events/${editingId}/update/`
+        : `/api/events/add/`;
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) { alert('保存に失敗したかも…'); return; }
+      location.reload();
+    };
+
+    // 削除
+    delBtn.onclick = async () => {
+      if (!editingId) return;
+      if (!confirm('この予定を削除します。よろしい？')) return;
+      const res = await fetch(`/api/events/${editingId}/delete/`, { method: 'POST' });
+      if (!res.ok) { alert('削除に失敗したかも…'); return; }
+      location.reload();
+    };
+  </script>
 </body>
 </html>
