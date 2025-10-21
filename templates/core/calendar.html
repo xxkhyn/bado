@@ -17,23 +17,31 @@
     .cal th{ background:#111827; font-weight:600; color:#9ca3af; text-align:center;}
     .daynum{ font-weight:700; color:#e5e7eb; }
     .today .daynum{ background:#60a5fa; color:#0b0f1a; padding:2px 8px; border-radius:999px; }
+    .other { background:#0b1220; color:#6b7280; }
     .cell{ position:relative; cursor:pointer; }
     .event{ font-size:12px; background:#1f2937; border:1px solid #374151; padding:6px 8px; border-radius:8px; margin-top:6px; }
     .event:hover{ background:#2a3648; }
     .muted{ color:#6b7280; }
+    .event .time{ font-size:11px; opacity:.85; margin-bottom:2px; }
+    .event .title{ font-weight:600; font-size:12px; }
+
     .btn{ color:#0b0f1a; background:#93c5fd; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
     .btn:hover{ filter:brightness(1.05); }
+    .btn.gray{ background:#d1d5db; }
+    .btn.red{ background:#fca5a5; }
 
-    /* モーダル */
     .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; }
     .modal{ width: min(500px, 92vw); background:#0f172a; border:1px solid #1f2937; border-radius:12px; padding:16px; }
     .field{ margin:10px 0;}
     .field label{ display:block; font-size:12px; color:#9ca3af; margin-bottom:4px;}
-    .field input, .field textarea{ width:100%; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:8px; padding:8px; }
+    .field input, .field textarea, .field select{ width:100%; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:8px; padding:8px; }
     .row{ display:flex; gap:10px; }
   </style>
 </head>
 <body>
+  {# 年・月を data-* で渡す（JS の {{ }} 衝突回避） #}
+  <div id="cfg" data-year="{{ year }}" data-month="{{ month }}"></div>
+
   <div class="wrap">
     <div class="bar">
       <div class="nav">
@@ -51,120 +59,164 @@
         </tr>
       </thead>
       <tbody>
-        {% comment %}
-          1日が何曜日かで前の空白を入れたい…などの本格レイアウトは後で。
-          まずはシンプルに1〜末日を並べる。
-        {% endcomment %}
-        <tr>
-        {% for day in month_days %}
-          {% if forloop.counter0|divisibleby:7 and not forloop.first %}</tr><tr>{% endif %}
-          <td class="cell {% if day == today %}today{% endif %}" data-date="{{ day|date:'Y-m-d' }}">
-            <div class="daynum">{{ day.day }}</div>
+        {% for week in weeks %}
+          <tr>
+            {% for day in week %}
+              <td class="cell {% if day == today %}today{% endif %} {% if day.month != month %}other{% endif %}"
+                  data-date="{{ day|date:'Y-m-d' }}">
+                <div class="daynum">{{ day.day }}</div>
 
-            {% for e in events_by_day|get_item:day.day %}
-              <div class="event" data-id="{{ e.id }}" data-title="{{ e.title|escape }}"
-                   data-start="{{ e.start|date:'c' }}" data-end="{% if e.end %}{{ e.end|date:'c' }}{% endif %}"
-                   data-desc="{{ e.description|default_if_none:''|escape }}">
-                {{ e.title }}
-              </div>
-            {% empty %}
-              <div class="muted" style="font-size:12px; margin-top:6px;">予定なし</div>
+                {% for e in events_by_date|get_item:day %}
+                  <div class="event"
+                       title="{{ e.description|default_if_none:'' }}"
+                       data-id="{{ e.id }}"
+                       data-title="{{ e.title|escape }}"
+                       data-start="{{ e.start|date:'c' }}"
+                       data-end="{% if e.end %}{{ e.end|date:'c' }}{% endif %}"
+                       data-desc="{{ e.description|default_if_none:''|escape }}">
+                    <div class="time">{{ e|time_range }}</div>
+                    <div class="title">{{ e.title }}</div>
+                  </div>
+                {% empty %}
+                  <div class="muted" style="font-size:12px; margin-top:6px;">予定なし</div>
+                {% endfor %}
+              </td>
             {% endfor %}
-          </td>
+          </tr>
         {% endfor %}
-        </tr>
       </tbody>
     </table>
   </div>
 
-  <!-- モーダル -->
+  <!-- モーダル：年・月は省略。日・開始/終了時刻のみ -->
   <div class="modal-backdrop" id="modalBg">
     <div class="modal">
       <h3 id="modalTitle" style="margin:0 0 8px 0;">予定を追加</h3>
+
       <div class="field">
         <label>タイトル</label>
         <input type="text" id="fTitle" />
       </div>
+
       <div class="row">
         <div class="field" style="flex:1;">
-          <label>開始 (YYYY-MM-DDTHH:mm)</label>
-          <input type="text" id="fStart" placeholder="2025-09-03T10:00" />
+          <label>日</label>
+          <select id="fDay"></select>
         </div>
         <div class="field" style="flex:1;">
-          <label>終了 (任意 / 空でもOK)</label>
-          <input type="text" id="fEnd" placeholder="2025-09-03T11:00" />
+          <label>開始時刻</label>
+          <input type="time" id="fStartTime" step="300" />
+        </div>
+        <div class="field" style="flex:1;">
+          <label>終了時刻 (任意)</label>
+          <input type="time" id="fEndTime" step="300" />
         </div>
       </div>
+
       <div class="field">
         <label>メモ</label>
         <textarea id="fDesc" rows="3"></textarea>
       </div>
+
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
         <button class="btn" id="saveBtn">保存</button>
-        <button class="btn" id="deleteBtn" style="background:#fca5a5; display:none;">削除</button>
-        <button class="btn" id="cancelBtn" style="background:#d1d5db;">キャンセル</button>
+        <button class="btn red" id="deleteBtn" style="display:none;">削除</button>
+        <button class="btn gray" id="cancelBtn">キャンセル</button>
       </div>
     </div>
   </div>
 
   <script>
+    // ===== CSRF =====
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // ===== 年・月（ビューが渡す） =====
+    const cfg = document.getElementById('cfg');
+    const CAL_YEAR  = parseInt(cfg.dataset.year, 10);
+    const CAL_MONTH = parseInt(cfg.dataset.month, 10); // 1..12
+    const DAYS_IN_MONTH = new Date(CAL_YEAR, CAL_MONTH, 0).getDate();
+
+    // ===== 要素 =====
     const modalBg = document.getElementById('modalBg');
     const fTitle = document.getElementById('fTitle');
-    const fStart = document.getElementById('fStart');
-    const fEnd   = document.getElementById('fEnd');
+    const fDay = document.getElementById('fDay');
+    const fStartTime = document.getElementById('fStartTime');
+    const fEndTime = document.getElementById('fEndTime');
     const fDesc  = document.getElementById('fDesc');
     const saveBtn = document.getElementById('saveBtn');
     const delBtn  = document.getElementById('deleteBtn');
     const modalTitle = document.getElementById('modalTitle');
 
-    let editingId = null; // null=新規、数値=編集
+    // ===== 日セレクト初期化 =====
+    (function initDayOptions(){
+      fDay.innerHTML = '';
+      for (let d = 1; d <= DAYS_IN_MONTH; d++) {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = `${d}日`;
+        fDay.appendChild(opt);
+      }
+    })();
+
+    // ===== util =====
+    const pad = (n) => String(n).padStart(2,'0');
+
+    function localPartsToISO(day, time) {
+      if (!day || !time) return null;
+      const [hh, mm] = time.split(':').map(Number);
+      const dt = new Date(CAL_YEAR, CAL_MONTH - 1, Number(day), hh, mm, 0); // ローカル
+      return dt.toISOString(); // 送信はISO(UTC)
+    }
+
+    function isoToDay(iso)  { if (!iso) return ''; const d = new Date(iso); return d.getDate(); }
+    function isoToTime(iso) { if (!iso) return ''; const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+
+    // ===== モーダル =====
+    let editingId = null;
 
     function openModal(payload) {
       modalBg.style.display = 'flex';
-      if (payload) {
+      if (payload && payload.id) {
         editingId = payload.id;
         modalTitle.textContent = '予定を編集';
         fTitle.value = payload.title || '';
-        fStart.value = (payload.start || '').slice(0,16);
-        fEnd.value   = payload.end ? payload.end.slice(0,16) : '';
-        fDesc.value  = payload.description || '';
+        fDay.value = isoToDay(payload.start) || 1;
+        fStartTime.value = isoToTime(payload.start) || '09:00';
+        fEndTime.value   = isoToTime(payload.end)   || '';
+        fDesc.value = payload.description || '';
         delBtn.style.display = 'inline-block';
       } else {
         editingId = null;
         modalTitle.textContent = '予定を追加';
         fTitle.value = '';
-        fStart.value = '';
-        fEnd.value = '';
+        fDay.value = 1;
+        fStartTime.value = '09:00';
+        fEndTime.value = '';
         fDesc.value = '';
         delBtn.style.display = 'none';
       }
     }
     function closeModal(){ modalBg.style.display = 'none'; }
-
     document.getElementById('cancelBtn').onclick = closeModal;
 
-    // セルクリックで新規作成
+    // セルクリック → 新規
     document.querySelectorAll('.cell').forEach(td => {
       td.addEventListener('click', (e) => {
-        // イベントdivクリックは別処理にしたいので、ここはセル直クリック時のみ
         if (e.target.classList.contains('event')) return;
-
-        const d = td.dataset.date;
-        const now = new Date();
-        const hh = String(now.getHours()).padStart(2,'0');
-        const mm = String(now.getMinutes()).padStart(2,'0');
-        openModal({
-          id: null,
-          title: '',
-          start: `${d}T${hh}:${mm}`,
-          end: '',
-          description: ''
-        });
-        fStart.value = `${d}T09:00`;
+        const day = Number(td.dataset.date.split('-')[2]);
+        openModal({});
+        fDay.value = day;
+        fStartTime.value = '09:00';
+        fEndTime.value = '';
       });
     });
 
-    // 既存イベントクリックで編集
+    // 既存イベントクリック → 編集
     document.querySelectorAll('.event').forEach(div => {
       div.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -172,47 +224,70 @@
           id: div.dataset.id,
           title: div.dataset.title,
           start: div.dataset.start,
-          end: div.dataset.end || '',
+          end:   div.dataset.end || '',
           description: div.dataset.desc || ''
         });
       });
     });
 
-    // 「今日に追加」
+    // 今日に追加
     document.getElementById('addTodayBtn').onclick = () => {
-      const d = new Date();
-      const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
-      openModal({ id:null, title:'', start:`${y}-${m}-${day}T09:00`, end:'', description:'' });
+      const now = new Date();
+      const sameMonth = (now.getFullYear() === CAL_YEAR) && (now.getMonth()+1 === CAL_MONTH);
+      openModal({});
+      fDay.value = sameMonth ? now.getDate() : 1;
+      fStartTime.value = '09:00';
+      fEndTime.value = '';
     };
 
     // 保存
-    saveBtn.onclick = async () => {
-      const payload = {
-        title: fTitle.value.trim() || '無題',
-        start: fStart.value ? new Date(fStart.value).toISOString() : null,
-        end:   fEnd.value   ? new Date(fEnd.value).toISOString()   : null,
-        description: fDesc.value || ''
-      };
-      if (!payload.start) { alert('開始を入力してね'); return; }
+    // 保存
+  saveBtn.onclick = async () => {
+    const startISO = localPartsToISO(fDay.value, fStartTime.value);
+    const endISO   = fEndTime.value ? localPartsToISO(fDay.value, fEndTime.value) : null;
+    if (!startISO) { alert('開始時刻を入力してね'); return; }
 
-      const url = editingId
-        ? `/api/events/${editingId}/update/`
-        : `/api/events/add/`;
+    // 開始 > 終了 のチェック
+    if (endISO) {
+      const startDate = new Date(startISO);
+      const endDate   = new Date(endISO);
+      if (endDate <= startDate) {
+        alert('終了時刻は開始時刻より後にしてください');
+        return;
+      }
+    }
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) { alert('保存に失敗したかも…'); return; }
-      location.reload();
+    const payload = {
+      title: (fTitle.value || '').trim() || '無題',
+      start: startISO,
+      end:   endISO,
+      description: fDesc.value || ''
     };
+
+    const url = editingId
+      ? `/api/events/${editingId}/update/`
+      : `/api/events/add/`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'X-CSRFToken': csrftoken
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { alert('保存に失敗したかも…'); return; }
+    location.reload();
+  };
 
     // 削除
     delBtn.onclick = async () => {
       if (!editingId) return;
       if (!confirm('この予定を削除します。よろしい？')) return;
-      const res = await fetch(`/api/events/${editingId}/delete/`, { method: 'POST' });
+      const res = await fetch(`/api/events/${editingId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken }
+      });
       if (!res.ok) { alert('削除に失敗したかも…'); return; }
       location.reload();
     };
