@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}月刊誌アップロード{% endblock %}
+
+{% block content %}
+<h2 style="margin:0 0 16px 0;">月刊誌PDFのアップロード</h2>
+
+<form method="post" enctype="multipart/form-data" style="max-width:520px;">
+  {% csrf_token %}
+
+  <div style="display:grid;gap:12px;background:#0f172a;border:1px solid #1f2937;border-radius:12px;padding:16px;">
+    <div>
+      <label style="font-size:12px;opacity:.8;">タイトル</label>
+      {{ form.title }}
+    </div>
+    <div>
+      <label style="font-size:12px;opacity:.8;">発行月</label>
+      {{ form.issue_month }}
+    </div>
+    <div>
+      <label style="font-size:12px;opacity:.8;">PDFファイル</label>
+      {{ form.pdf }}
+    </div>
+    <div>
+      <label style="font-size:12px;opacity:.8;">公開</label>
+      {{ form.is_public }}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <a href="{% url 'magazines_list' %}" class="btn gray" style="text-decoration:none;background:#d1d5db;color:#0b0f1a;padding:8px 12px;border-radius:8px;">戻る</a>
+      <button type="submit" class="login-btn">アップロード</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

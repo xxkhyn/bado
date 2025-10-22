@@ -3,12 +3,15 @@ import calendar
 import json
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.views.decorators.http import require_http_methods
 
-from .models import Event
+from .models import Event, MagazineIssue, EventAttendance  # ← EventAttendance を使う
+from .forms import MagazineUploadForm
 
 
 def _make_aware(dt):
@@ -18,6 +21,7 @@ def _make_aware(dt):
     if timezone.is_naive(dt):
         return timezone.make_aware(dt, timezone.get_current_timezone())
     return dt
+
 
 @login_required
 def home(request):
@@ -31,9 +35,9 @@ def calendar_view(request):
     y = int(request.GET.get("y", today.year))
     m = int(request.GET.get("m", today.month))
 
-    # 日曜はじまりの週グリッド（前月/翌月のはみ出しも含む）
-    cal = calendar.Calendar(firstweekday=6)  # 6 = Sunday
-    weeks = cal.monthdatescalendar(y, m)     # [[date x7], ...週]
+    # 日曜はじまりの週グリッド
+    cal = calendar.Calendar(firstweekday=6)
+    weeks = cal.monthdatescalendar(y, m)  # [[date x7], ...週]
 
     # 画面に表示される範囲でイベント取得
     start_range = weeks[0][0]
@@ -75,88 +79,145 @@ def events_json(request):
         "start": e.start.isoformat(),
         "end": e.end.isoformat() if e.end else None,
         "description": e.description,
+        "attending_count": e.attendances.count(),  # 参加人数
     } for e in events]
     return JsonResponse(data, safe=False)
 
 
 def _auto_end(start_dt, end_dt):
     """
-    end が未指定(None/空)なら start + 3時間を返す。
-    end が start より前でもガードして start + 3時間にする。
+    end が未指定(None/空) or start 以前なら start + 3時間を返す。
     """
     if not start_dt:
-        return end_dt  # start がない場合は何もしない（上位でバリデーション）
-
-    if end_dt is None:
+        return end_dt
+    if end_dt is None or end_dt <= start_dt:
         return start_dt + timedelta(hours=3)
-
-    if end_dt <= start_dt:
-        return start_dt + timedelta(hours=3)
-
     return end_dt
 
 
 @login_required
 def event_add(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request"}, status=400)
 
-        start_dt = parse_datetime(data.get("start"))
-        if not start_dt:
-            return JsonResponse({"error": "start is required"}, status=400)
+    data = json.loads(request.body or "{}")
+    start_dt = parse_datetime(data.get("start"))
+    if not start_dt:
+        return JsonResponse({"error": "start is required"}, status=400)
 
-        end_raw = data.get("end")
-        end_dt = parse_datetime(end_raw) if end_raw else None
-        end_dt = _auto_end(start_dt, end_dt)
+    end_raw = data.get("end")
+    end_dt = parse_datetime(end_raw) if end_raw else None
+    end_dt = _auto_end(start_dt, end_dt)
 
-        event = Event.objects.create(
-            user=request.user,
-            title=data.get("title", "無題"),
-            start=start_dt,
-            end=end_dt,
-            description=data.get("description", "")
-        )
-        return JsonResponse({"id": event.id})
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    event = Event.objects.create(
+        user=request.user,
+        title=data.get("title", "無題"),
+        start=start_dt,
+        end=end_dt,
+        description=data.get("description", ""),
+    )
+    return JsonResponse({"id": event.id})
 
 
 @login_required
 def event_update(request, event_id):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        try:
-            event = Event.objects.get(id=event_id, user=request.user)
-        except Event.DoesNotExist:
-            return JsonResponse({"error": "Event not found"}, status=404)
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request"}, status=400)
 
-        # start / end の更新（未指定は据え置き）
-        start_dt = parse_datetime(data.get("start")) if data.get("start") else event.start
-        end_dt = None
-        if "end" in data:  # キーがある：空(=None)にしたいケースにも対応
-            end_raw = data.get("end")
-            end_dt = parse_datetime(end_raw) if end_raw else None
-        else:
-            end_dt = event.end  # 変更なし
+    data = json.loads(request.body or "{}")
+    event = get_object_or_404(Event, id=event_id, user=request.user)
 
-        # 自動補完
-        end_dt = _auto_end(start_dt, end_dt)
+    start_dt = parse_datetime(data.get("start")) if data.get("start") else event.start
+    if "end" in data:
+        end_raw = data.get("end")
+        end_dt = parse_datetime(end_raw) if end_raw else None
+    else:
+        end_dt = event.end
 
-        event.title = data.get("title", event.title)
-        event.start = start_dt
-        event.end = end_dt
-        event.description = data.get("description", event.description)
-        event.save()
-        return JsonResponse({"status": "updated"})
+    end_dt = _auto_end(start_dt, end_dt)
 
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    event.title = data.get("title", event.title)
+    event.start = start_dt
+    event.end = end_dt
+    event.description = data.get("description", event.description)
+    event.save()
+    return JsonResponse({"status": "updated"})
+
 
 @login_required
 def event_delete(request, event_id):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request"}, status=400)
-    try:
-        event = Event.objects.get(id=event_id, user=request.user)
-    except Event.DoesNotExist:
-        return JsonResponse({"error": "Event not found"}, status=404)
+    event = get_object_or_404(Event, id=event_id, user=request.user)
     event.delete()
     return JsonResponse({"status": "deleted"})
+
+
+# ===== 参加トグル =====
+
+@login_required
+@require_http_methods(["POST"])
+def event_vote(request, event_id):
+    """
+    参加ボタンでトグル。
+    既に参加していたら取り消し、まだなら参加。
+    返り値: { attending: bool, count: int }
+    """
+    event = get_object_or_404(Event, id=event_id)
+    obj, created = EventAttendance.objects.get_or_create(event=event, user=request.user)
+    if created:
+        attending = True
+    else:
+        obj.delete()
+        attending = False
+    return JsonResponse({"attending": attending, "count": event.attendances.count()})
+
+
+# ===== 月刊誌 =====
+
+def magazines_list(request):
+    qs = MagazineIssue.objects.filter(is_public=True)
+    paginator = Paginator(qs, 12)
+    page = request.GET.get("page")
+    issues = paginator.get_page(page)
+    return render(request, "core/magazines_list.html", {"issues": issues})
+
+
+@login_required
+def magazines_upload(request):
+    if request.method == "POST":
+        form = MagazineUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect("magazines_list")
+    else:
+        form = MagazineUploadForm()
+    return render(request, "core/magazines_upload.html", {"form": form})
+
+@login_required
+@require_http_methods(["GET"])
+def votes_summary(request, event_id):
+    try:
+        event = Event.objects.get(id=event_id)
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+
+    counts = _vote_counts(event)
+    my = event.votes.filter(user=request.user).first()
+    my_choice = None if not my else {0:'no',1:'yes',2:'maybe'}[my.choice]
+
+    # 参加者一覧（全員）
+    yes_names = list(
+        event.votes
+             .filter(choice=1)
+             .select_related('user')
+             .order_by('updated_at')
+             .values_list('user__first_name', 'user__username')
+    )
+    display_names = [(fn or un) for fn, un in yes_names]
+
+    return JsonResponse({
+        'counts': counts,
+        'my_choice': my_choice,
+        'yes_names': display_names,  # ← 全員を返す
+    })

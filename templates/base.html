@@ -1,22 +1,144 @@
-<!doctype html>
+{# templates/base.html #}
+{% load static %}
+{% load socialaccount %}
+
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>Circle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}bado{% endblock %}</title>
+  <style>
+    :root{
+      --bg:#0b0f1a; --panel:#0f172a; --line:#1f2937; --text:#e5e7eb; --muted:#9ca3af; --brand:#93c5fd;
+      --menu-bg:#ffffff; --menu-text:#111827; --ring:#e5e7eb;
+    }
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;}
+    a{color:var(--brand);}
+
+    /* Topbar */
+    .topbar{
+      position:sticky; top:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line);
+      backdrop-filter:saturate(140%) blur(4px);
+    }
+    .brand{font-weight:800; letter-spacing:.2px;}
+    .tabs{display:flex; gap:14px; align-items:center;}
+    .tab{
+      color:var(--brand); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent; font-weight:600;
+    }
+    .tab.active{ border-bottom-color:var(--brand); }
+
+    .right{display:flex; align-items:center; gap:10px;}
+
+    /* Google風アバター：白背景＋影＋丸枠 */
+    .avatar-btn{
+      display:inline-flex; align-items:center; gap:10px;
+      background:#fff; color:var(--menu-text);
+      border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 1px 2px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+      padding:4px 8px; border-radius:999px; cursor:pointer;
+    }
+    .avatar-img{
+      width:28px; height:28px; border-radius:50%; object-fit:cover;
+      background:#fff;
+      box-shadow:0 0 0 2px var(--ring) inset; /* 薄い丸枠 */
+    }
+    .avatar-fallback{
+      width:28px; height:28px; border-radius:50%;
+      display:grid; place-items:center; font-weight:700;
+      background:#fff; color:#374151;
+      box-shadow:0 0 0 2px var(--ring) inset;
+    }
+    .login-btn{
+      background:var(--brand); color:#0b0f1a; font-weight:700;
+      border:none; border-radius:999px; padding:6px 12px; text-decoration:none; cursor:pointer;
+    }
+    .login-btn:hover{ filter:brightness(1.05); }
+
+    /* Dropdown menu（白カード） */
+    .menu{
+      position:absolute; right:16px; top:56px; min-width:220px; display:none;
+      background:var(--menu-bg); color:var(--menu-text);
+      border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 8px 24px rgba(0,0,0,.12);
+      border-radius:12px; overflow:hidden;
+    }
+    .menu .hdr{ padding:10px 12px; font-size:12px; color:#6b7280; background:#f9fafb; }
+    .menu a, .menu button{
+      display:block; width:100%; text-align:left; background:transparent;
+      color:var(--menu-text); border:none; padding:12px 14px; cursor:pointer; text-decoration:none; font-size:14px;
+    }
+    .menu a:hover, .menu button:hover{ background:#f3f4f6; }
+
+    /* Content wrapper */
+    .wrap{max-width:1000px; margin:24px auto; padding:0 16px;}
+  </style>
+  {% block head_extra %}{% endblock %}
 </head>
 <body>
-<header>
-  <a href="/">Circle</a>
-  <nav>
-    {% if user.is_authenticated %}
-      ようこそ、{{ user.username }} / <a href="/accounts/logout/">ログアウト</a>
-    {% else %}
-      <a href="/accounts/google/login/">Googleでログイン</a>
-    {% endif %}
-  </nav>
-</header>
-<main>
-  {% block content %}{% endblock %}
-</main>
+  <header class="topbar">
+    <div class="brand">bado</div>
+
+    <nav class="tabs" aria-label="Primary">
+      <a class="tab {% if request.resolver_match.url_name == 'calendar' or request.resolver_match.url_name == 'home' %}active{% endif %}"
+         href="{% url 'calendar' %}">📅 カレンダー</a>
+      <a class="tab {% if request.resolver_match.url_name == 'magazines_list' %}active{% endif %}"
+         href="{% url 'magazines_list' %}">📖 月刊誌</a>
+    </nav>
+
+    <div class="right">
+      {% if user.is_authenticated %}
+        {% with sa=user.socialaccount_set.first %}
+          {% if sa and sa.get_avatar_url %}
+            {% with avatar_url=sa.get_avatar_url %}
+              <button id="avatarBtn" class="avatar-btn" aria-haspopup="menu" aria-expanded="false">
+                <img class="avatar-img" src="{{ avatar_url }}" alt="avatar">
+                <span style="font-size:12px; opacity:.8;">{{ user.first_name|default:user.username }}</span>
+              </button>
+            {% endwith %}
+          {% else %}
+            <button id="avatarBtn" class="avatar-btn" aria-haspopup="menu" aria-expanded="false">
+              <div class="avatar-fallback">{{ user.username|first|upper }}</div>
+              <span style="font-size:12px; opacity:.8;">{{ user.username }}</span>
+            </button>
+          {% endif %}
+        {% endwith %}
+
+        <nav id="userMenu" class="menu" role="menu">
+          <div class="hdr">{{ user.email }}</div>
+          <a href="{% url 'calendar' %}" role="menuitem">ホーム（カレンダー）</a>
+          <a href="{% url 'magazines_list' %}" role="menuitem">月刊誌</a>
+          <a href="/accounts/email/" role="menuitem">アカウント設定</a>
+          <a href="/accounts/logout/" role="menuitem">ログアウト</a> {# ACCOUNT_LOGOUT_ON_GET=True を想定 #}
+        </nav>
+      {% else %}
+        <a class="login-btn" href="{% provider_login_url 'google' %}">Googleでログイン</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="wrap">
+    {% block content %}{% endblock %}
+  </div>
+
+  <script>
+    // avatar dropdown
+    const btn = document.getElementById('avatarBtn');
+    const menu = document.getElementById('userMenu');
+    if (btn && menu) {
+      const toggle = () => {
+        const open = menu.style.display === 'block';
+        menu.style.display = open ? 'none' : 'block';
+        btn.setAttribute('aria-expanded', (!open).toString());
+      };
+      btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+      document.addEventListener('click', () => { if(menu.style.display==='block'){ menu.style.display='none'; btn.setAttribute('aria-expanded','false'); }});
+      // Escで閉じる
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ menu.style.display='none'; btn.setAttribute('aria-expanded','false'); }});
+    }
+  </script>
+  {% block body_end %}{% endblock %}
 </body>
 </html>

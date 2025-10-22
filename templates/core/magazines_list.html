@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}月刊誌アーカイブ{% endblock %}
+
+{% block content %}
+<h2 style="margin:0 0 16px 0;">月刊誌アーカイブ</h2>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+  <p style="opacity:.8;">PDFをクリックで新規タブ表示 / ダウンロードできます。</p>
+  {% if user.is_authenticated %}
+    <a href="{% url 'magazines_upload' %}" class="login-btn" style="text-decoration:none;">PDFをアップロード</a>
+  {% endif %}
+</div>
+
+{% if issues %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+    {% for m in issues %}
+      <a href="{{ m.pdf.url }}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">
+        <div style="background:#0f172a;border:1px solid #1f2937;border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;">
+          <div style="width:44px;height:56px;border-radius:6px;background:#172036;display:grid;place-items:center;font-size:12px;opacity:.9;">PDF</div>
+          <div>
+            <div style="font-weight:700;">{{ m.title }}</div>
+            <div style="font-size:12px;opacity:.7;">{{ m.issue_month|date:"Y年n月" }}</div>
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+  {% if issues.has_other_pages %}
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
+      {% if issues.has_previous %}
+        <a href="?page={{ issues.previous_page_number }}" class="login-btn" style="text-decoration:none;">前へ</a>
+      {% endif %}
+      <div style="padding:6px 10px;border:1px solid #1f2937;border-radius:999px;">{{ issues.number }} / {{ issues.paginator.num_pages }}</div>
+      {% if issues.has_next %}
+        <a href="?page={{ issues.next_page_number }}" class="login-btn" style="text-decoration:none;">次へ</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+{% else %}
+  <div style="opacity:.7;">まだ登録がありません。</div>
+{% endif %}
+{% endblock %}
