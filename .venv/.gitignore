@@ -10,7 +10,17 @@ __pycache__/
 # Django
 /static/
 /media/
+/db.sqlite3          # 明示的に個別指定（保険）
+*.log                # Djangoログファイル（開発時に出ることあり）
+*.pot
+*.py,cover
+*.log
+*.bak
+
+# IDE / Editor
+.vscode/
+.idea/
 
 # その他
 .env
-
+.DS_Store            # macOS Finderの隠しファイル
