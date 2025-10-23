@@ -1,3 +1,4 @@
+# core/views.py
 from datetime import date, timedelta
 import calendar
 import json
@@ -10,12 +11,12 @@ from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from .models import Event, MagazineIssue, EventAttendance  # ← EventAttendance を使う
+from .models import Event, MagazineIssue, EventAttendance
 from .forms import MagazineUploadForm
 
 
 def _make_aware(dt):
-    """naive な datetime を現在のタイムゾーンで aware にする"""
+    """naive な datetime を現在のタイムゾーンで aware にする（必要なら）"""
     if dt is None:
         return None
     if timezone.is_naive(dt):
@@ -23,9 +24,12 @@ def _make_aware(dt):
     return dt
 
 
+# =========================
+#  画面
+# =========================
 @login_required
 def home(request):
-    # ルートはカレンダーへ
+    """ルートはカレンダーへ"""
     return calendar_view(request)
 
 
@@ -37,16 +41,16 @@ def calendar_view(request):
 
     # 日曜はじまりの週グリッド
     cal = calendar.Calendar(firstweekday=6)
-    weeks = cal.monthdatescalendar(y, m)  # [[date x7], ...週]
+    weeks = cal.monthdatescalendar(y, m)
 
     # 画面に表示される範囲でイベント取得
     start_range = weeks[0][0]
     end_range = weeks[-1][-1]
-    qs = (Event.objects
-          .filter(user=request.user,
-                  start__date__gte=start_range,
-                  start__date__lte=end_range)
-          .order_by("start"))
+    qs = (
+        Event.objects
+        .filter(user=request.user, start__date__gte=start_range, start__date__lte=end_range)
+        .order_by("start")
+    )
 
     # date -> [Event,...]
     events_by_date = {}
@@ -54,7 +58,6 @@ def calendar_view(request):
         d = e.start.date()
         events_by_date.setdefault(d, []).append(e)
 
-    # 前後月
     prev_y, prev_m = (y - 1, 12) if m == 1 else (y, m - 1)
     next_y, next_m = (y + 1, 1) if m == 12 else (y, m + 1)
 
@@ -68,8 +71,9 @@ def calendar_view(request):
     })
 
 
-# ===== JSON API =====
-
+# =========================
+#  イベント API
+# =========================
 @login_required
 def events_json(request):
     events = Event.objects.filter(user=request.user).order_by("start")
@@ -85,9 +89,7 @@ def events_json(request):
 
 
 def _auto_end(start_dt, end_dt):
-    """
-    end が未指定(None/空) or start 以前なら start + 3時間を返す。
-    """
+    """end が未指定 or start 以前なら start + 3時間に補完"""
     if not start_dt:
         return end_dt
     if end_dt is None or end_dt <= start_dt:
@@ -96,10 +98,8 @@ def _auto_end(start_dt, end_dt):
 
 
 @login_required
+@require_http_methods(["POST"])
 def event_add(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid request"}, status=400)
-
     data = json.loads(request.body or "{}")
     start_dt = parse_datetime(data.get("start"))
     if not start_dt:
@@ -120,10 +120,8 @@ def event_add(request):
 
 
 @login_required
+@require_http_methods(["POST"])
 def event_update(request, event_id):
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid request"}, status=400)
-
     data = json.loads(request.body or "{}")
     event = get_object_or_404(Event, id=event_id, user=request.user)
 
@@ -133,7 +131,6 @@ def event_update(request, event_id):
         end_dt = parse_datetime(end_raw) if end_raw else None
     else:
         end_dt = event.end
-
     end_dt = _auto_end(start_dt, end_dt)
 
     event.title = data.get("title", event.title)
@@ -145,15 +142,26 @@ def event_update(request, event_id):
 
 
 @login_required
+@require_http_methods(["POST"])
 def event_delete(request, event_id):
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid request"}, status=400)
     event = get_object_or_404(Event, id=event_id, user=request.user)
     event.delete()
     return JsonResponse({"status": "deleted"})
 
 
-# ===== 参加トグル =====
+# =========================
+#  参加トグル & 集計
+# =========================
+def _attendance_summary(event, user=None):
+    """参加人数 / 自分の状態 / 表示用の参加者名（先頭10名）を返す"""
+    qs = event.attendances.select_related("user").order_by("created_at")
+    count = qs.count()
+    names = [(u.user.first_name or u.user.username) for u in qs[:10]]
+    attending = False
+    if user and user.is_authenticated:
+        attending = qs.filter(user=user).exists()
+    return {"count": count, "attending": attending, "names": names}
+
 
 @login_required
 @require_http_methods(["POST"])
@@ -161,7 +169,7 @@ def event_vote(request, event_id):
     """
     参加ボタンでトグル。
     既に参加していたら取り消し、まだなら参加。
-    返り値: { attending: bool, count: int }
+    返り値: { attending: bool, count: int, names: [...](先頭10) }
     """
     event = get_object_or_404(Event, id=event_id)
     obj, created = EventAttendance.objects.get_or_create(event=event, user=request.user)
@@ -170,11 +178,41 @@ def event_vote(request, event_id):
     else:
         obj.delete()
         attending = False
-    return JsonResponse({"attending": attending, "count": event.attendances.count()})
+
+    summary = _attendance_summary(event, request.user)
+    return JsonResponse({"attending": attending, "count": summary["count"], "names": summary["names"]})
 
 
-# ===== 月刊誌 =====
+@login_required
+@require_http_methods(["GET"])
+def votes_summary(request, event_id):
+    """
+    旧フロント互換のサマリーAPI。
+    yes/no/maybe は使わず、参加者のみをカウント。
+    """
+    event = get_object_or_404(Event, id=event_id)
+    s = _attendance_summary(event, request.user)
+    return JsonResponse({
+        "counts": {"yes": s["count"], "maybe": 0, "no": 0, "total": s["count"]},
+        "my_choice": ("yes" if s["attending"] else None),
+        "yes_names": s["names"],
+    })
 
+
+@login_required
+def attendees_list(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    qs = event.attendances.select_related('user').order_by('created_at')
+    names = list(qs.values_list('user__first_name', 'user__username'))
+    display = [(fn or un) for fn, un in names]
+    i_am = qs.filter(user=request.user).exists()
+    return JsonResponse({'names': display, 'count': len(display), 'i_am': i_am})
+
+
+
+# =========================
+#  月刊誌
+# =========================
 def magazines_list(request):
     qs = MagazineIssue.objects.filter(is_public=True)
     paginator = Paginator(qs, 12)
@@ -193,31 +231,3 @@ def magazines_upload(request):
     else:
         form = MagazineUploadForm()
     return render(request, "core/magazines_upload.html", {"form": form})
-
-@login_required
-@require_http_methods(["GET"])
-def votes_summary(request, event_id):
-    try:
-        event = Event.objects.get(id=event_id)
-    except Event.DoesNotExist:
-        return JsonResponse({'error': 'Event not found'}, status=404)
-
-    counts = _vote_counts(event)
-    my = event.votes.filter(user=request.user).first()
-    my_choice = None if not my else {0:'no',1:'yes',2:'maybe'}[my.choice]
-
-    # 参加者一覧（全員）
-    yes_names = list(
-        event.votes
-             .filter(choice=1)
-             .select_related('user')
-             .order_by('updated_at')
-             .values_list('user__first_name', 'user__username')
-    )
-    display_names = [(fn or un) for fn, un in yes_names]
-
-    return JsonResponse({
-        'counts': counts,
-        'my_choice': my_choice,
-        'yes_names': display_names,  # ← 全員を返す
-    })

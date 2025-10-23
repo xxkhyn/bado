@@ -22,6 +22,7 @@
 
   .btn{ color:#0b0f1a; background:#93c5fd; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
   .btn:hover{ filter:brightness(1.05); }
+  .btn.gray{ background:#d1d5db; }
   .btn.red{ background:#fca5a5; }
 
   .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50; }
@@ -31,7 +32,7 @@
   .field input, .field textarea, .field select{ width:100%; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:8px; padding:8px; }
   .row{ display:flex; gap:10px; }
 
-  /* 追加: 参加ボタン */
+  /* 参加ボタン */
   #attendBtn {
     margin-top: 6px;
     padding: 6px 10px;
@@ -130,11 +131,12 @@
       <textarea id="fDesc" rows="3"></textarea>
     </div>
 
-    <!-- 参加ボタン -->
+    <!-- 参加（トグル） -->
     <div id="attendBox" style="border-top:1px solid #1f2937; margin-top:12px; padding-top:12px; display:none;">
       <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">イベント参加</div>
       <button id="attendBtn">参加</button>
       <div id="attendCount"></div>
+      <div id="attendList" class="muted" style="margin-top:6px; font-size:12px; max-height:110px; overflow-y:auto;"></div>
     </div>
 
     <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
@@ -146,6 +148,7 @@
 </div>
 
 <script>
+  // ===== CSRF =====
   function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -153,11 +156,13 @@
   }
   const csrftoken = getCookie('csrftoken');
 
+  // ===== 年・月 =====
   const cfg = document.getElementById('cfg');
   const CAL_YEAR  = parseInt(cfg.dataset.year, 10);
-  const CAL_MONTH = parseInt(cfg.dataset.month, 10);
+  const CAL_MONTH = parseInt(cfg.dataset.month, 10); // 1..12
   const DAYS_IN_MONTH = new Date(CAL_YEAR, CAL_MONTH, 0).getDate();
 
+  // ===== 要素 =====
   const modalBg = document.getElementById('modalBg');
   const fTitle = document.getElementById('fTitle');
   const fDay = document.getElementById('fDay');
@@ -168,11 +173,13 @@
   const delBtn  = document.getElementById('deleteBtn');
   const modalTitle = document.getElementById('modalTitle');
 
-  // 参加ボタン
+  // 参加
   const attendBox = document.getElementById('attendBox');
   const attendBtn = document.getElementById('attendBtn');
   const attendCount = document.getElementById('attendCount');
+  const attendList = document.getElementById('attendList');
 
+  // ===== 日セレクト初期化 =====
   (function initDayOptions(){
     fDay.innerHTML = '';
     for (let d = 1; d <= DAYS_IN_MONTH; d++) {
@@ -183,16 +190,20 @@
     }
   })();
 
+  // ===== util =====
   const pad = (n) => String(n).padStart(2,'0');
+
   function localPartsToISO(day, time) {
     if (!day || !time) return null;
     const [hh, mm] = time.split(':').map(Number);
-    const dt = new Date(CAL_YEAR, CAL_MONTH - 1, Number(day), hh, mm, 0);
-    return dt.toISOString();
+    const dt = new Date(CAL_YEAR, CAL_MONTH - 1, Number(day), hh, mm, 0); // ローカル
+    return dt.toISOString(); // 送信はISO(UTC)
   }
+
   function isoToDay(iso)  { if (!iso) return ''; const d = new Date(iso); return d.getDate(); }
   function isoToTime(iso) { if (!iso) return ''; const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 
+  // ===== モーダル =====
   let editingId = null;
 
   function openModal(payload) {
@@ -207,6 +218,7 @@
       fDesc.value = payload.description || '';
       delBtn.style.display = 'inline-block';
 
+      // 参加枠を表示 → 初期状態をGETで読みに行く（POSTしない！）
       attendBox.style.display = 'block';
       loadAttendance(editingId);
     } else {
@@ -218,22 +230,29 @@
       fEndTime.value = '';
       fDesc.value = '';
       delBtn.style.display = 'none';
+
       attendBox.style.display = 'none';
+      attendCount.textContent = '';
+      attendList.textContent = '';
     }
   }
-
   function closeModal(){ modalBg.style.display = 'none'; }
   document.getElementById('cancelBtn').onclick = closeModal;
 
+  // セルクリック → 新規
   document.querySelectorAll('.cell').forEach(td => {
     td.addEventListener('click', (e) => {
-      if (e.target.classList.contains('event')) return;
+      // イベントの内側クリックは編集に任せる
+      if (e.target.closest('.event')) return;
       const day = Number(td.dataset.date.split('-')[2]);
       openModal({});
       fDay.value = day;
+      fStartTime.value = '09:00';
+      fEndTime.value = '';
     });
   });
 
+  // 既存イベントクリック → 編集
   document.querySelectorAll('.event').forEach(div => {
     div.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -247,17 +266,31 @@
     });
   });
 
+  // 今日に追加
   document.getElementById('addTodayBtn').onclick = () => {
     const now = new Date();
     const sameMonth = (now.getFullYear() === CAL_YEAR) && (now.getMonth()+1 === CAL_MONTH);
     openModal({});
     fDay.value = sameMonth ? now.getDate() : 1;
+    fStartTime.value = '09:00';
+    fEndTime.value = '';
   };
 
+  // 保存
   saveBtn.onclick = async () => {
     const startISO = localPartsToISO(fDay.value, fStartTime.value);
     const endISO   = fEndTime.value ? localPartsToISO(fDay.value, fEndTime.value) : null;
     if (!startISO) { alert('開始時刻を入力してね'); return; }
+
+    // クライアント側の軽いチェック（終了<=開始を警告）
+    if (endISO) {
+      const startDate = new Date(startISO);
+      const endDate   = new Date(endISO);
+      if (endDate <= startDate) {
+        alert('終了時刻は開始時刻より後にしてください');
+        return;
+      }
+    }
 
     const payload = {
       title: (fTitle.value || '').trim() || '無題',
@@ -272,13 +305,17 @@
 
     const res = await fetch(url, {
       method: 'POST',
-      headers: {'Content-Type':'application/json', 'X-CSRFToken': csrftoken},
+      headers: {
+        'Content-Type':'application/json',
+        'X-CSRFToken': csrftoken
+      },
       body: JSON.stringify(payload)
     });
     if (!res.ok) { alert('保存に失敗したかも…'); return; }
     location.reload();
   };
 
+  // 削除
   delBtn.onclick = async () => {
     if (!editingId) return;
     if (!confirm('この予定を削除します。よろしい？')) return;
@@ -291,52 +328,48 @@
   };
 
   // ===== 参加API =====
+
+  // 初期読み込み & 一覧更新：GET /attendees/
   async function loadAttendance(eventId) {
-    const res = await fetch(`/api/events/${eventId}/vote/`, { method: 'POST', headers: {'X-CSRFToken': csrftoken} });
-    const data = await res.json();
-    updateAttendanceUI(data.attending, data.count);
+    try {
+      const res = await fetch(`/api/events/${eventId}/attendees/`);
+      if (!res.ok) return;
+      const data = await res.json(); // { names: [...], count: n, i_am?: bool }
+      // 人数
+      attendCount.textContent = `参加者: ${data.count}人`;
+      // 一覧
+      attendList.textContent = (data.names && data.names.length)
+        ? data.names.join('、 ')
+        : '（まだ参加者はいません）';
+      // 自分の参加状態
+      const iAm = typeof data.i_am === 'boolean' ? data.i_am : false;
+      attendBtn.textContent = iAm ? '参加中（クリックで解除）' : '参加';
+      attendBtn.classList.toggle('active', iAm);
+    } catch (e) {
+      // 通信エラー時は黙っておく
+    }
   }
 
+  // トグル：POST /vote/ → {attending: bool, count: int}
   async function toggleAttendance() {
     if (!editingId) return;
-    const res = await fetch(`/api/events/${editingId}/vote/`, {
-      method: 'POST',
-      headers: {'X-CSRFToken': csrftoken}
-    });
-    const data = await res.json();
-    updateAttendanceUI(data.attending, data.count);
-  }
-
-  function updateAttendanceUI(attending, count) {
-    attendBtn.textContent = attending ? '参加中（クリックで解除）' : '参加';
-    attendBtn.classList.toggle('active', attending);
-    attendCount.textContent = `参加者: ${count}人`;
+    try {
+      const res = await fetch(`/api/events/${editingId}/vote/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken }
+      });
+      if (!res.ok) { alert('参加更新に失敗しました'); return; }
+      const data = await res.json();
+      attendBtn.textContent = data.attending ? '参加中（クリックで解除）' : '参加';
+      attendBtn.classList.toggle('active', data.attending);
+      attendCount.textContent = `参加者: ${data.count}人`;
+      // 一覧を最新化
+      loadAttendance(editingId);
+    } catch {
+      alert('通信エラーが発生しました');
+    }
   }
 
   attendBtn.addEventListener('click', toggleAttendance);
-
-  function renderVoteSummary(sum) {
-    const c = sum?.counts || {yes:0,no:0,maybe:0};
-    voteCounts.textContent = `参加 ${c.yes}｜未定 ${c.maybe}｜不参加 ${c.no}`;
-
-    // ここを改良
-    if (sum?.yes_names?.length) {
-      const names = sum.yes_names.join('、 ');
-      voteNames.innerHTML = `
-        <div style="max-height:100px; overflow-y:auto; line-height:1.6;">
-          <strong style="color:#93c5fd;">参加者一覧</strong><br>
-          ${names}
-        </div>
-      `;
-    } else {
-      voteNames.textContent = '（参加者なし）';
-    }
-
-    [btnYes, btnMaybe, btnNo].forEach(b => b && (b.style.outline = 'none'));
-    if (sum?.my_choice === 'yes') btnYes.style.outline = '2px solid #93c5fd';
-    if (sum?.my_choice === 'maybe') btnMaybe.style.outline = '2px solid #93c5fd';
-    if (sum?.my_choice === 'no') btnNo.style.outline = '2px solid #93c5fd';
-  }
-
 </script>
 {% endblock %}

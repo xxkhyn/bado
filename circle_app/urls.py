@@ -19,6 +19,8 @@ urlpatterns = [
     path("api/events/<int:event_id>/update/", core_views.event_update, name="event_update"),
     path("api/events/<int:event_id>/delete/", core_views.event_delete, name="event_delete"),
     path("api/events/<int:event_id>/vote/", core_views.event_vote, name="event_vote"),  # ← 参加トグル用
+    path("api/events/<int:event_id>/attendees/", core_views.attendees_list, name="attendees_list"),
+
 
     # 月刊誌ページ
     path("magazines/", core_views.magazines_list, name="magazines_list"),
