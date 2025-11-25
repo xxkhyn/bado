@@ -2,14 +2,18 @@
 from datetime import date, timedelta
 import calendar
 import json
+import io
 
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+import qrcode
 
 from .models import Event, MagazineIssue, EventAttendance
 from .forms import MagazineUploadForm
@@ -231,3 +235,52 @@ def magazines_upload(request):
     else:
         form = MagazineUploadForm()
     return render(request, "core/magazines_upload.html", {"form": form})
+
+@login_required
+def event_qr(request, event_id):
+    """
+    出席用QRコード画像を返すビュー。
+    オーナー or スタッフのみ表示可能。
+    """
+    event = get_object_or_404(Event, pk=event_id)
+
+    # 表示権限チェック（必要に応じて調整）
+    if not (request.user.is_staff or request.user == event.user):
+        return HttpResponse(status=403)
+
+    token = event.ensure_checkin_token()
+    checkin_url = request.build_absolute_uri(
+        reverse("event_checkin", args=[event.id, token])
+    )
+
+    # QR 生成
+    img = qrcode.make(checkin_url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return HttpResponse(buf.getvalue(), content_type="image/png")
+
+
+@login_required
+def event_checkin(request, event_id, token):
+    """
+    QRコードから叩かれる出席登録用ビュー。
+    token が Event.checkin_token と一致したら出席を記録。
+    """
+    event = get_object_or_404(Event, pk=event_id)
+
+    if not token or token != (event.checkin_token or ""):
+        return HttpResponseBadRequest("無効なトークンです。")
+
+    attendance, created = EventAttendance.objects.get_or_create(
+        event=event,
+        user=request.user,
+    )
+
+    if created:
+        messages.success(request, f"{event.title} の出席を記録しました。")
+    else:
+        messages.info(request, f"{event.title} は既に出席済みです。")
+
+    # 好きな画面に戻す（カレンダーでOKならこれで）
+    return redirect("calendar")

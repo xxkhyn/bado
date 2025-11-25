@@ -21,6 +21,10 @@ urlpatterns = [
     path("api/events/<int:event_id>/vote/", core_views.event_vote, name="event_vote"),  # ← 参加トグル用
     path("api/events/<int:event_id>/attendees/", core_views.attendees_list, name="attendees_list"),
 
+        # ★ QR 出席用
+    path("events/<int:event_id>/qr/", core_views.event_qr, name="event_qr"),
+    path("events/<int:event_id>/checkin/<str:token>/", core_views.event_checkin, name="event_checkin"),
+
 
     # 月刊誌ページ
     path("magazines/", core_views.magazines_list, name="magazines_list"),

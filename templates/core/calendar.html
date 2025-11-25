@@ -87,7 +87,8 @@
                    data-title="{{ e.title|escape }}"
                    data-start="{{ e.start|date:'c' }}"
                    data-end="{% if e.end %}{{ e.end|date:'c' }}{% endif %}"
-                   data-desc="{{ e.description|default_if_none:''|escape }}">
+                   data-desc="{{ e.description|default_if_none:''|escape }}"
+                   data-can-manage="{% if request.user.is_staff or e.user_id == request.user.id %}1{% else %}0{% endif %}">
                 <div class="time">{{ e|time_range }}</div>
                 <div class="title">{{ e.title }}</div>
               </div>
@@ -139,6 +140,21 @@
       <div id="attendList" class="muted" style="margin-top:6px; font-size:12px; max-height:110px; overflow-y:auto;"></div>
     </div>
 
+    <!-- 出席用QRコード（運営 or イベント作成者のみ表示） -->
+    <div id="qrBox" style="border-top:1px solid #1f2937; margin-top:12px; padding-top:12px; display:none;">
+      <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">出席用QRコード</div>
+      <button class="btn gray" id="showQrBtn" style="padding:6px 10px; font-size:13px;">QRコードを表示</button>
+      <div id="qrImageWrapper" style="margin-top:10px; text-align:center; display:none;">
+        <img id="qrImage"
+             src=""
+             alt="出席用QRコード"
+             style="width:200px; height:200px; background:#020617; border-radius:12px; border:1px solid #1f2937; object-fit:contain;">
+      </div>
+      <div style="font-size:11px; color:#6b7280; margin-top:6px;">
+        表示されたQRコードを参加者がスマホで読み取ると、このイベントへの出席が記録されます。
+      </div>
+    </div>
+
     <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
       <button class="btn" id="saveBtn">保存</button>
       <button class="btn red" id="deleteBtn" style="display:none;">削除</button>
@@ -179,6 +195,12 @@
   const attendCount = document.getElementById('attendCount');
   const attendList = document.getElementById('attendList');
 
+  // QR
+  const qrBox = document.getElementById('qrBox');
+  const showQrBtn = document.getElementById('showQrBtn');
+  const qrImageWrapper = document.getElementById('qrImageWrapper');
+  const qrImage = document.getElementById('qrImage');
+
   // ===== 日セレクト初期化 =====
   (function initDayOptions(){
     fDay.innerHTML = '';
@@ -205,11 +227,14 @@
 
   // ===== モーダル =====
   let editingId = null;
+  let currentCanManage = false;  // このイベントに対してQRを出せるかどうか
 
   function openModal(payload) {
     modalBg.style.display = 'flex';
     if (payload && payload.id) {
       editingId = payload.id;
+      currentCanManage = !!payload.canManage;
+
       modalTitle.textContent = '予定を編集';
       fTitle.value = payload.title || '';
       fDay.value = isoToDay(payload.start) || 1;
@@ -221,8 +246,20 @@
       // 参加枠を表示 → 初期状態をGETで読みに行く（POSTしない！）
       attendBox.style.display = 'block';
       loadAttendance(editingId);
+
+      // QR枠：運営 or 作成者のみ表示
+      if (currentCanManage) {
+        qrBox.style.display = 'block';
+      } else {
+        qrBox.style.display = 'none';
+      }
+      qrImageWrapper.style.display = 'none';
+      qrImage.src = '';
+
     } else {
       editingId = null;
+      currentCanManage = false;
+
       modalTitle.textContent = '予定を追加';
       fTitle.value = '';
       fDay.value = 1;
@@ -234,6 +271,10 @@
       attendBox.style.display = 'none';
       attendCount.textContent = '';
       attendList.textContent = '';
+
+      qrBox.style.display = 'none';
+      qrImageWrapper.style.display = 'none';
+      qrImage.src = '';
     }
   }
   function closeModal(){ modalBg.style.display = 'none'; }
@@ -261,7 +302,8 @@
         title: div.dataset.title,
         start: div.dataset.start,
         end:   div.dataset.end || '',
-        description: div.dataset.desc || ''
+        description: div.dataset.desc || '',
+        canManage: div.dataset.canManage === '1'
       });
     });
   });
@@ -371,5 +413,17 @@
   }
 
   attendBtn.addEventListener('click', toggleAttendance);
+
+  // ===== QRコード表示 =====
+  showQrBtn.addEventListener('click', () => {
+    if (!editingId) return;
+    if (!currentCanManage) {
+      alert('このイベントのQRコードを表示する権限がありません。');
+      return;
+    }
+    // キャッシュ対策用にクエリパラメータを付ける
+    qrImage.src = `/events/${editingId}/qr/?_=${Date.now()}`;
+    qrImageWrapper.style.display = 'block';
+  });
 </script>
 {% endblock %}
