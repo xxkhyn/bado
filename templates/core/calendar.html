@@ -4,161 +4,120 @@
 {% block title %}{{ year }}年{{ month }}月の予定{% endblock %}
 
 {% block content %}
-<style>
-  .bar { display:flex; align-items:center; justify-content:space-between; margin: 8px 0 16px; }
-  .bar .nav a{ color:#93c5fd; text-decoration:none; margin:0 6px; }
-  .cal { width:100%; border-collapse: collapse; background:#0f172a; border-radius: 12px; overflow:hidden; }
-  .cal th, .cal td { border: 1px solid #1f2937; padding: 10px; vertical-align: top; width:14.2857%; height:120px; }
-  .cal th{ background:#111827; font-weight:600; color:#9ca3af; text-align:center;}
-  .daynum{ font-weight:700; color:#e5e7eb; }
-  .today .daynum{ background:#60a5fa; color:#0b0f1a; padding:2px 8px; border-radius:999px; }
-  .other { background:#0b1220; color:#6b7280; }
-  .cell{ position:relative; cursor:pointer; }
-  .event{ font-size:12px; background:#1f2937; border:1px solid #374151; padding:6px 8px; border-radius:8px; margin-top:6px; }
-  .event:hover{ background:#2a3648; }
-  .muted{ color:#9ca3af; opacity:.85; }
-  .event .time{ font-size:11px; opacity:.85; margin-bottom:2px; }
-  .event .title{ font-weight:600; font-size:12px; }
-
-  .btn{ color:#0b0f1a; background:#93c5fd; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
-  .btn:hover{ filter:brightness(1.05); }
-  .btn.gray{ background:#d1d5db; }
-  .btn.red{ background:#fca5a5; }
-
-  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50; }
-  .modal{ width: min(520px, 92vw); background:#0f172a; border:1px solid #1f2937; border-radius:12px; padding:16px; }
-  .field{ margin:10px 0;}
-  .field label{ display:block; font-size:12px; color:#9ca3af; margin-bottom:4px;}
-  .field input, .field textarea, .field select{ width:100%; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:8px; padding:8px; }
-  .row{ display:flex; gap:10px; }
-
-  /* 参加ボタン */
-  #attendBtn {
-    margin-top: 6px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    cursor: pointer;
-    border: none;
-    background: #60a5fa;
-    color: #0b0f1a;
-    font-weight: 600;
-  }
-  #attendBtn.active {
-    background: #10b981;
-    color: #fff;
-  }
-  #attendCount {
-    font-size: 12px;
-    color: #9ca3af;
-    margin-top: 6px;
-  }
-</style>
-
+<!-- Configuration Data -->
 <div id="cfg" data-year="{{ year }}" data-month="{{ month }}"></div>
 
-<div class="bar">
-  <div class="nav">
-    <a href="?y={{ prev_y }}&m={{ prev_m }}">← 前の月</a>
-    <a href="?y={{ next_y }}&m={{ next_m }}">次の月 →</a>
+<!-- Calendar Container -->
+<div class="cal-container">
+  <!-- Header / Navigation -->
+  <div class="cal-header">
+    <div class="cal-nav">
+      <a href="?y={{ prev_y }}&m={{ prev_m }}">← 前の月</a>
+    </div>
+    <h2 style="margin:0; font-size:1.2rem; color:var(--text-main);">{{ year }}年 {{ month }}月</h2>
+    <div class="cal-nav">
+      <a href="?y={{ next_y }}&m={{ next_m }}">次の月 →</a>
+    </div>
   </div>
-  <h2 style="margin:0;">{{ year }}年 {{ month }}月</h2>
-  <button class="btn" id="addTodayBtn">今日に追加</button>
+
+  <div
+    style="padding:10px 20px; display:flex; justify-content:flex-end; background:var(--bg-surface); border-bottom:1px solid var(--border-subtle);">
+    <button class="btn" id="addTodayBtn" style="font-size:0.8rem; padding:6px 12px;">+ 今日に追加</button>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="cal-grid">
+    <!-- Day Headers -->
+    <div class="cal-head-cell" style="color:#ef4444;">日</div>
+    <div class="cal-head-cell">月</div>
+    <div class="cal-head-cell">火</div>
+    <div class="cal-head-cell">水</div>
+    <div class="cal-head-cell">木</div>
+    <div class="cal-head-cell">金</div>
+    <div class="cal-head-cell" style="color:#3b82f6;">土</div>
+
+    <!-- Days -->
+    {% for week in weeks %}
+    {% for day in week %}
+    <div class="cal-cell {% if day == today %}today{% endif %} {% if day.month != month %}other-month{% endif %}"
+      data-date="{{ day|date:'Y-m-d' }}">
+
+      <div class="day-number">{{ day.day }}</div>
+
+      {% for e in events_by_date|get_item:day %}
+      <div class="event-chip" title="{{ e.description|default_if_none:'' }}" data-id="{{ e.id }}"
+        data-title="{{ e.title|escape }}" data-start="{{ e.start|date:'c' }}"
+        data-end="{% if e.end %}{{ e.end|date:'c' }}{% endif %}"
+        data-desc="{{ e.description|default_if_none:''|escape }}"
+        data-can-manage="{% if request.user.is_staff or e.user_id == request.user.id %}1{% else %}0{% endif %}">
+        <div class="event-time">{{ e|time_range }}</div>
+        <div class="event-title">{{ e.title }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </div>
 </div>
 
-<table class="cal">
-  <thead>
-    <tr>
-      <th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for week in weeks %}
-      <tr>
-        {% for day in week %}
-          <td class="cell {% if day == today %}today{% endif %} {% if day.month != month %}other{% endif %}"
-              data-date="{{ day|date:'Y-m-d' }}">
-            <div class="daynum">{{ day.day }}</div>
-
-            {% for e in events_by_date|get_item:day %}
-              <div class="event"
-                   title="{{ e.description|default_if_none:'' }}"
-                   data-id="{{ e.id }}"
-                   data-title="{{ e.title|escape }}"
-                   data-start="{{ e.start|date:'c' }}"
-                   data-end="{% if e.end %}{{ e.end|date:'c' }}{% endif %}"
-                   data-desc="{{ e.description|default_if_none:''|escape }}"
-                   data-can-manage="{% if request.user.is_staff or e.user_id == request.user.id %}1{% else %}0{% endif %}">
-                <div class="time">{{ e|time_range }}</div>
-                <div class="title">{{ e.title }}</div>
-              </div>
-            {% empty %}
-              <div class="muted" style="font-size:12px; margin-top:6px;">予定なし</div>
-            {% endfor %}
-          </td>
-        {% endfor %}
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<!-- モーダル -->
+<!-- Modal -->
 <div class="modal-backdrop" id="modalBg">
   <div class="modal">
-    <h3 id="modalTitle" style="margin:0 0 8px 0;">予定を追加</h3>
+    <h3 id="modalTitle">予定を追加</h3>
 
     <div class="field">
       <label>タイトル</label>
-      <input type="text" id="fTitle" />
+      <input type="text" id="fTitle" placeholder="例: ミーティング" />
     </div>
 
-    <div class="row">
+    <div style="display:flex; gap:16px;">
       <div class="field" style="flex:1;">
         <label>日</label>
         <select id="fDay"></select>
       </div>
       <div class="field" style="flex:1;">
-        <label>開始時刻</label>
+        <label>開始</label>
         <input type="time" id="fStartTime" step="300" />
       </div>
       <div class="field" style="flex:1;">
-        <label>終了時刻 (任意)</label>
+        <label>終了 (任意)</label>
         <input type="time" id="fEndTime" step="300" />
       </div>
     </div>
 
     <div class="field">
       <label>メモ</label>
-      <textarea id="fDesc" rows="3"></textarea>
+      <textarea id="fDesc" rows="3" placeholder="詳細を入力..."></textarea>
     </div>
 
-    <!-- 参加（トグル） -->
-    <div id="attendBox" style="border-top:1px solid #1f2937; margin-top:12px; padding-top:12px; display:none;">
-      <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">イベント参加</div>
-      <button id="attendBtn">参加</button>
-      <div id="attendCount"></div>
-      <div id="attendList" class="muted" style="margin-top:6px; font-size:12px; max-height:110px; overflow-y:auto;"></div>
-    </div>
-
-    <!-- 出席用QRコード（運営 or イベント作成者のみ表示） -->
-    <div id="qrBox" style="border-top:1px solid #1f2937; margin-top:12px; padding-top:12px; display:none;">
-      <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">出席用QRコード</div>
-      <button class="btn gray" id="showQrBtn" style="padding:6px 10px; font-size:13px;">QRコードを表示</button>
-      <div id="qrImageWrapper" style="margin-top:10px; text-align:center; display:none;">
-        <img id="qrImage"
-             src=""
-             alt="出席用QRコード"
-             style="width:200px; height:200px; background:#020617; border-radius:12px; border:1px solid #1f2937; object-fit:contain;">
+    <!-- Attendance -->
+    <div id="attendBox"
+      style="border-top:1px solid var(--border-default); margin-top:16px; padding-top:16px; display:none;">
+      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">参加状況</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button id="attendBtn" class="btn">参加する</button>
+        <span id="attendCount" style="font-size:0.85rem; color:var(--text-dim);"></span>
       </div>
-      <div style="font-size:11px; color:#6b7280; margin-top:6px;">
-        表示されたQRコードを参加者がスマホで読み取ると、このイベントへの出席が記録されます。
+      <div id="attendList"
+        style="margin-top:8px; font-size:0.8rem; color:var(--text-muted); max-height:100px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- QR Code -->
+    <div id="qrBox"
+      style="border-top:1px solid var(--border-default); margin-top:16px; padding-top:16px; display:none;">
+      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">出席管理</div>
+      <button class="btn gray" id="showQrBtn" style="font-size:0.8rem;">QRコードを表示</button>
+      <div id="qrImageWrapper" style="margin-top:12px; text-align:center; display:none;">
+        <img id="qrImage" src="" alt="QR Code"
+          style="width:180px; height:180px; border-radius:8px; border:1px solid var(--border-default); background:white; padding:8px;">
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">参加者にこのQRコードを読み取ってもらってください。</p>
       </div>
     </div>
 
-    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
-      <button class="btn" id="saveBtn">保存</button>
-      <button class="btn red" id="deleteBtn" style="display:none;">削除</button>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:24px;">
       <button class="btn gray" id="cancelBtn">キャンセル</button>
+      <button class="btn red" id="deleteBtn" style="display:none;">削除</button>
+      <button class="btn" id="saveBtn">保存</button>
     </div>
   </div>
 </div>
@@ -172,37 +131,35 @@
   }
   const csrftoken = getCookie('csrftoken');
 
-  // ===== 年・月 =====
+  // ===== Config =====
   const cfg = document.getElementById('cfg');
-  const CAL_YEAR  = parseInt(cfg.dataset.year, 10);
-  const CAL_MONTH = parseInt(cfg.dataset.month, 10); // 1..12
+  const CAL_YEAR = parseInt(cfg.dataset.year, 10);
+  const CAL_MONTH = parseInt(cfg.dataset.month, 10);
   const DAYS_IN_MONTH = new Date(CAL_YEAR, CAL_MONTH, 0).getDate();
 
-  // ===== 要素 =====
+  // ===== Elements =====
   const modalBg = document.getElementById('modalBg');
   const fTitle = document.getElementById('fTitle');
   const fDay = document.getElementById('fDay');
   const fStartTime = document.getElementById('fStartTime');
   const fEndTime = document.getElementById('fEndTime');
-  const fDesc  = document.getElementById('fDesc');
+  const fDesc = document.getElementById('fDesc');
   const saveBtn = document.getElementById('saveBtn');
-  const delBtn  = document.getElementById('deleteBtn');
+  const delBtn = document.getElementById('deleteBtn');
   const modalTitle = document.getElementById('modalTitle');
 
-  // 参加
   const attendBox = document.getElementById('attendBox');
   const attendBtn = document.getElementById('attendBtn');
   const attendCount = document.getElementById('attendCount');
   const attendList = document.getElementById('attendList');
 
-  // QR
   const qrBox = document.getElementById('qrBox');
   const showQrBtn = document.getElementById('showQrBtn');
   const qrImageWrapper = document.getElementById('qrImageWrapper');
   const qrImage = document.getElementById('qrImage');
 
-  // ===== 日セレクト初期化 =====
-  (function initDayOptions(){
+  // ===== Init Day Options =====
+  (function initDayOptions() {
     fDay.innerHTML = '';
     for (let d = 1; d <= DAYS_IN_MONTH; d++) {
       const opt = document.createElement('option');
@@ -212,22 +169,22 @@
     }
   })();
 
-  // ===== util =====
-  const pad = (n) => String(n).padStart(2,'0');
+  // ===== Utils =====
+  const pad = (n) => String(n).padStart(2, '0');
 
   function localPartsToISO(day, time) {
     if (!day || !time) return null;
     const [hh, mm] = time.split(':').map(Number);
-    const dt = new Date(CAL_YEAR, CAL_MONTH - 1, Number(day), hh, mm, 0); // ローカル
-    return dt.toISOString(); // 送信はISO(UTC)
+    const dt = new Date(CAL_YEAR, CAL_MONTH - 1, Number(day), hh, mm, 0);
+    return dt.toISOString();
   }
 
-  function isoToDay(iso)  { if (!iso) return ''; const d = new Date(iso); return d.getDate(); }
+  function isoToDay(iso) { if (!iso) return ''; const d = new Date(iso); return d.getDate(); }
   function isoToTime(iso) { if (!iso) return ''; const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 
-  // ===== モーダル =====
+  // ===== Modal Logic =====
   let editingId = null;
-  let currentCanManage = false;  // このイベントに対してQRを出せるかどうか
+  let currentCanManage = false;
 
   function openModal(payload) {
     modalBg.style.display = 'flex';
@@ -239,15 +196,13 @@
       fTitle.value = payload.title || '';
       fDay.value = isoToDay(payload.start) || 1;
       fStartTime.value = isoToTime(payload.start) || '09:00';
-      fEndTime.value   = isoToTime(payload.end)   || '';
+      fEndTime.value = isoToTime(payload.end) || '';
       fDesc.value = payload.description || '';
       delBtn.style.display = 'inline-block';
 
-      // 参加枠を表示 → 初期状態をGETで読みに行く（POSTしない！）
       attendBox.style.display = 'block';
       loadAttendance(editingId);
 
-      // QR枠：運営 or 作成者のみ表示
       if (currentCanManage) {
         qrBox.style.display = 'block';
       } else {
@@ -277,15 +232,20 @@
       qrImage.src = '';
     }
   }
-  function closeModal(){ modalBg.style.display = 'none'; }
+
+  function closeModal() { modalBg.style.display = 'none'; }
   document.getElementById('cancelBtn').onclick = closeModal;
 
-  // セルクリック → 新規
-  document.querySelectorAll('.cell').forEach(td => {
-    td.addEventListener('click', (e) => {
-      // イベントの内側クリックは編集に任せる
-      if (e.target.closest('.event')) return;
-      const day = Number(td.dataset.date.split('-')[2]);
+  // Close on backdrop click
+  modalBg.addEventListener('click', (e) => {
+    if (e.target === modalBg) closeModal();
+  });
+
+  // Cell Click -> New
+  document.querySelectorAll('.cal-cell').forEach(div => {
+    div.addEventListener('click', (e) => {
+      if (e.target.closest('.event-chip')) return;
+      const day = Number(div.dataset.date.split('-')[2]);
       openModal({});
       fDay.value = day;
       fStartTime.value = '09:00';
@@ -293,41 +253,40 @@
     });
   });
 
-  // 既存イベントクリック → 編集
-  document.querySelectorAll('.event').forEach(div => {
+  // Event Click -> Edit
+  document.querySelectorAll('.event-chip').forEach(div => {
     div.addEventListener('click', (e) => {
       e.stopPropagation();
       openModal({
         id: div.dataset.id,
         title: div.dataset.title,
         start: div.dataset.start,
-        end:   div.dataset.end || '',
+        end: div.dataset.end || '',
         description: div.dataset.desc || '',
         canManage: div.dataset.canManage === '1'
       });
     });
   });
 
-  // 今日に追加
+  // Add Today Button
   document.getElementById('addTodayBtn').onclick = () => {
     const now = new Date();
-    const sameMonth = (now.getFullYear() === CAL_YEAR) && (now.getMonth()+1 === CAL_MONTH);
+    const sameMonth = (now.getFullYear() === CAL_YEAR) && (now.getMonth() + 1 === CAL_MONTH);
     openModal({});
     fDay.value = sameMonth ? now.getDate() : 1;
     fStartTime.value = '09:00';
     fEndTime.value = '';
   };
 
-  // 保存
+  // Save
   saveBtn.onclick = async () => {
     const startISO = localPartsToISO(fDay.value, fStartTime.value);
-    const endISO   = fEndTime.value ? localPartsToISO(fDay.value, fEndTime.value) : null;
-    if (!startISO) { alert('開始時刻を入力してね'); return; }
+    const endISO = fEndTime.value ? localPartsToISO(fDay.value, fEndTime.value) : null;
+    if (!startISO) { alert('開始時刻を入力してください'); return; }
 
-    // クライアント側の軽いチェック（終了<=開始を警告）
     if (endISO) {
       const startDate = new Date(startISO);
-      const endDate   = new Date(endISO);
+      const endDate = new Date(endISO);
       if (endDate <= startDate) {
         alert('終了時刻は開始時刻より後にしてください');
         return;
@@ -337,7 +296,7 @@
     const payload = {
       title: (fTitle.value || '').trim() || '無題',
       start: startISO,
-      end:   endISO,
+      end: endISO,
       description: fDesc.value || ''
     };
 
@@ -345,54 +304,66 @@
       ? `/api/events/${editingId}/update/`
       : `/api/events/add/`;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type':'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) { alert('保存に失敗したかも…'); return; }
-    location.reload();
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error();
+      location.reload();
+    } catch {
+      alert('保存に失敗しました');
+    }
   };
 
-  // 削除
+  // Delete
   delBtn.onclick = async () => {
     if (!editingId) return;
-    if (!confirm('この予定を削除します。よろしい？')) return;
-    const res = await fetch(`/api/events/${editingId}/delete/`, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': csrftoken }
-    });
-    if (!res.ok) { alert('削除に失敗したかも…'); return; }
-    location.reload();
+    if (!confirm('本当に削除しますか？')) return;
+    try {
+      const res = await fetch(`/api/events/${editingId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken }
+      });
+      if (!res.ok) throw new Error();
+      location.reload();
+    } catch {
+      alert('削除に失敗しました');
+    }
   };
 
-  // ===== 参加API =====
-
-  // 初期読み込み & 一覧更新：GET /attendees/
+  // Attendance API
   async function loadAttendance(eventId) {
     try {
       const res = await fetch(`/api/events/${eventId}/attendees/`);
       if (!res.ok) return;
-      const data = await res.json(); // { names: [...], count: n, i_am?: bool }
-      // 人数
-      attendCount.textContent = `参加者: ${data.count}人`;
-      // 一覧
+      const data = await res.json();
+      attendCount.textContent = `${data.count}名`;
       attendList.textContent = (data.names && data.names.length)
         ? data.names.join('、 ')
         : '（まだ参加者はいません）';
-      // 自分の参加状態
+
       const iAm = typeof data.i_am === 'boolean' ? data.i_am : false;
-      attendBtn.textContent = iAm ? '参加中（クリックで解除）' : '参加';
-      attendBtn.classList.toggle('active', iAm);
-    } catch (e) {
-      // 通信エラー時は黙っておく
+      updateAttendBtn(iAm);
+    } catch { }
+  }
+
+  function updateAttendBtn(isAttending) {
+    if (isAttending) {
+      attendBtn.textContent = '参加中 (解除)';
+      attendBtn.classList.add('active'); // You might want to style .active in CSS or just rely on text
+      attendBtn.style.background = 'var(--accent-success)';
+    } else {
+      attendBtn.textContent = '参加する';
+      attendBtn.classList.remove('active');
+      attendBtn.style.background = 'var(--brand-primary)';
     }
   }
 
-  // トグル：POST /vote/ → {attending: bool, count: int}
   async function toggleAttendance() {
     if (!editingId) return;
     try {
@@ -400,13 +371,11 @@
         method: 'POST',
         headers: { 'X-CSRFToken': csrftoken }
       });
-      if (!res.ok) { alert('参加更新に失敗しました'); return; }
+      if (!res.ok) { alert('更新に失敗しました'); return; }
       const data = await res.json();
-      attendBtn.textContent = data.attending ? '参加中（クリックで解除）' : '参加';
-      attendBtn.classList.toggle('active', data.attending);
-      attendCount.textContent = `参加者: ${data.count}人`;
-      // 一覧を最新化
-      loadAttendance(editingId);
+      updateAttendBtn(data.attending);
+      attendCount.textContent = `${data.count}名`;
+      loadAttendance(editingId); // Refresh list
     } catch {
       alert('通信エラーが発生しました');
     }
@@ -414,14 +383,13 @@
 
   attendBtn.addEventListener('click', toggleAttendance);
 
-  // ===== QRコード表示 =====
+  // QR Code
   showQrBtn.addEventListener('click', () => {
     if (!editingId) return;
     if (!currentCanManage) {
-      alert('このイベントのQRコードを表示する権限がありません。');
+      alert('権限がありません');
       return;
     }
-    // キャッシュ対策用にクエリパラメータを付ける
     qrImage.src = `/events/${editingId}/qr/?_=${Date.now()}`;
     qrImageWrapper.style.display = 'block';
   });
