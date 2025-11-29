@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load account socialaccount %}
+
+{% block title %}アカウント登録{% endblock %}
+
+{% block content %}
+<div class="flex-center" style="min-height: 80vh; padding: 20px;">
+    <div class="card" style="width: 100%; max-width: 420px; padding: 40px; border-top: 4px solid var(--brand-primary);">
+        <h1
+            style="text-align: center; margin-bottom: 32px; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em;">
+            アカウント登録</h1>
+
+        <p style="text-align: center; margin-bottom: 24px; color: var(--text-muted); font-size: 0.9rem;">
+            すでにアカウントをお持ちですか？ <a href="{% url 'account_login' %}"
+                style="color: var(--brand-primary); font-weight: 600;">ログイン</a>
+        </p>
+
+        <form class="signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div
+                style="background:rgba(239,68,68,0.1); border:1px solid var(--accent-danger); color:var(--accent-danger); padding:16px; border-radius:var(--radius-md); margin-bottom:24px; font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
+                {% for field in form %}
+                {% for error in field.errors %}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.1em;">⚠️</span> {{ error }}
+                </div>
+                {% endfor %}
+                {% endfor %}
+                {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.1em;">⚠️</span> {{ error }}
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% for field in form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">{{ field.help_text }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+            {% endif %}
+
+            <button class="primaryAction btn btn-primary" type="submit"
+                style="width:100%; margin-top:12px; padding: 14px;">登録する</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

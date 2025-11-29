@@ -73,9 +73,14 @@
             <button class="primaryAction btn btn-primary" type="submit"
                 style="width:100%; margin-top:12px; padding: 14px;">ログイン</button>
 
-            <div style="text-align:center; margin-top:24px; font-size:0.9rem;">
+            <div
+                style="text-align:center; margin-top:24px; font-size:0.9rem; display: flex; flex-direction: column; gap: 12px;">
                 <a class="button secondaryAction" href="{% url 'account_reset_password' %}"
                     style="color:var(--text-muted); text-decoration:underline; text-underline-offset:4px;">パスワードをお忘れですか？</a>
+                <div style="color: var(--text-muted);">
+                    アカウントをお持ちでない方は <a href="{% url 'account_signup' %}"
+                        style="color: var(--brand-primary); font-weight: 600;">新規登録</a>
+                </div>
             </div>
         </form>
     </div>
