@@ -5,9 +5,11 @@
 {% block title %}{% trans "Sign In" %}{% endblock %}
 
 {% block content %}
-<div class="flex-center" style="min-height: 60vh;">
-    <div class="card" style="width: 100%; max-width: 400px; padding: 32px;">
-        <h1 style="text-align: center; margin-bottom: 24px; font-size: 1.5rem;">{% trans "Sign In" %}</h1>
+<div class="flex-center" style="min-height: 80vh; padding: 20px;">
+    <div class="card" style="width: 100%; max-width: 420px; padding: 40px; border-top: 4px solid var(--brand-primary);">
+        <h1
+            style="text-align: center; margin-bottom: 32px; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em;">
+            {% trans "Sign In" %}</h1>
 
         {% get_providers as socialaccount_providers %}
 
@@ -17,9 +19,13 @@
                 {% include "socialaccount/snippets/provider_list.html" with process="login" %}
             </ul>
 
-            <div class="login-or" style="text-align:center; margin: 24px 0; position:relative; color:var(--text-muted); font-size:0.85rem;">
-                <span style="background:var(--bg-surface); padding:0 10px; position:relative; z-index:1;">{% trans 'or' %}</span>
-                <div style="position:absolute; top:50%; left:0; right:0; height:1px; background:var(--border-default);"></div>
+            <div class="login-or"
+                style="text-align:center; margin: 32px 0; position:relative; color:var(--text-muted); font-size:0.85rem;">
+                <span
+                    style="background:var(--bg-surface); padding:0 12px; position:relative; z-index:1; font-weight:600; letter-spacing:0.05em;">{%
+                    trans 'OR' %}</span>
+                <div style="position:absolute; top:50%; left:0; right:0; height:1px; background:var(--border-default);">
+                </div>
             </div>
         </div>
 
@@ -30,34 +36,48 @@
             {% csrf_token %}
 
             {% if form.errors %}
-            <div style="background:rgba(239,68,68,0.1); border:1px solid var(--accent-danger); color:var(--accent-danger); padding:12px; border-radius:var(--radius-sm); margin-bottom:16px; font-size:0.9rem;">
-                {{ form.non_field_errors }}
+            <div
+                style="background:rgba(239,68,68,0.1); border:1px solid var(--accent-danger); color:var(--accent-danger); padding:16px; border-radius:var(--radius-md); margin-bottom:24px; font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
                 {% for field in form %}
-                    {% for error in field.errors %}
-                        <div>{{ error }}</div>
-                    {% endfor %}
+                {% for error in field.errors %}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.1em;">⚠️</span> {{ error }}
+                </div>
                 {% endfor %}
+                {% endfor %}
+                {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.1em;">⚠️</span> {{ error }}
+                </div>
+                {% endfor %}
+                {% endif %}
             </div>
             {% endif %}
 
             <div class="field">
                 <label for="{{ form.login.id_for_label }}">{% trans "E-mail or Username" %}</label>
-                <input type="text" name="login" placeholder="E-mail or Username" autocomplete="username" required id="{{ form.login.id_for_label }}">
+                <input type="text" name="login" placeholder="example@email.com" autocomplete="username" required
+                    id="{{ form.login.id_for_label }}">
             </div>
 
             <div class="field">
                 <label for="{{ form.password.id_for_label }}">{% trans "Password" %}</label>
-                <input type="password" name="password" placeholder="Password" autocomplete="current-password" required id="{{ form.password.id_for_label }}">
+                <input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required
+                    id="{{ form.password.id_for_label }}">
             </div>
 
             {% if redirect_field_value %}
             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
             {% endif %}
 
-            <button class="primaryAction btn" type="submit" style="width:100%; margin-top:8px;">{% trans "Sign In" %}</button>
+            <button class="primaryAction btn btn-primary" type="submit"
+                style="width:100%; margin-top:12px; padding: 14px;">{% trans "Sign In" %}</button>
 
-            <div style="text-align:center; margin-top:16px; font-size:0.85rem;">
-                <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
+            <div style="text-align:center; margin-top:24px; font-size:0.9rem;">
+                <a class="button secondaryAction" href="{% url 'account_reset_password' %}"
+                    style="color:var(--text-muted); text-decoration:underline; text-underline-offset:4px;">{% trans
+                    "Forgot Password?" %}</a>
             </div>
         </form>
     </div>
