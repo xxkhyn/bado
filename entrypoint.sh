@@ -14,6 +14,7 @@
 
 python manage.py collectstatic --no-input
 python manage.py migrate
+python create_superuser.py
 
 if [ -z "$1" ]; then
     echo "No command provided, starting Gunicorn..."
