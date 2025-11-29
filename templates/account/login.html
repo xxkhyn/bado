@@ -2,7 +2,7 @@
 {% load i18n %}
 {% load account socialaccount %}
 
-{% block title %}{% trans "Sign In" %}{% endblock %}
+{% block title %}{% trans "Sign In" %{% endblock %}
 
 {% block content %}
 <div class="flex-center" style="min-height: 60vh;">
@@ -35,12 +35,12 @@
             {% if form.errors %}
             <div
                 style="background:rgba(239,68,68,0.1); border:1px solid var(--accent-danger); color:var(--accent-danger); padding:12px; border-radius:var(--radius-sm); margin-bottom:16px; font-size:0.9rem;">
-                {{ form.non_field_errors }}
                 {% for field in form %}
                 {% for error in field.errors %}
                 <div>{{ error }}</div>
                 {% endfor %}
                 {% endfor %}
+                {{ form.non_field_errors }}
             </div>
             {% endif %}
 
