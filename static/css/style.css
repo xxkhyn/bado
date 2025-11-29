@@ -35,19 +35,6 @@
     /* Red 500 */
     --accent-warning: #f59e0b;
     /* Amber 500 */
-
-    /* Spacing & Radius */
-    --radius-sm: 6px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-full: 9999px;
-    padding: 24px 16px;
-    width: 100%;
-}
-
-/* Header / Topbar */
-.topbar {
-    position: fixed;
     top: 0;
     left: 0;
     right: 0;
@@ -222,6 +209,17 @@
     to {
         opacity: 1;
     }
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: none;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal {
@@ -470,7 +468,7 @@
 .mb-4 {
     margin-bottom: 16px;
 }
-}
+
 
 .cal-nav a:hover {
     background: var(--bg-hover);
@@ -936,4 +934,193 @@ textarea:focus {
     background-color: #f8fafc;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     color: #1a1a1a;
+}
+
+/* Enhanced Mobile Optimization */
+@media (max-width: 640px) {
+    .topbar {
+        padding: 0 16px;
+        height: 60px;
+    }
+
+    .brand {
+        font-size: 1.2rem;
+    }
+
+    .tabs {
+        display: none;
+    }
+
+    /* Bottom Navigation */
+    .mobile-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 65px;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid var(--border-subtle);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 900;
+        padding-bottom: env(safe-area-inset-bottom);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-nav a {
+        flex: 1;
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 0;
+        transition: all 0.2s;
+    }
+
+    .mobile-nav a span:first-child {
+        font-size: 1.2rem;
+        margin-bottom: 2px;
+    }
+
+    .mobile-nav a.active {
+        color: var(--brand-primary);
+    }
+
+    .mobile-nav a:active {
+        transform: scale(0.95);
+    }
+
+    .wrap {
+        padding-bottom: 100px;
+        padding-top: 10px;
+    }
+
+    /* Mobile Calendar Grid */
+    .cal-container {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .cal-header {
+        background: transparent;
+        border-bottom: none;
+        padding: 10px 0;
+        margin-bottom: 10px;
+    }
+
+    .cal-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .cal-grid {
+        gap: 4px;
+        background: transparent;
+        border: none;
+    }
+
+    .cal-head-cell {
+        background: transparent;
+        border: none;
+        font-size: 0.75rem;
+        padding: 8px 0;
+        color: var(--text-dim);
+    }
+
+    .cal-cell {
+        min-height: 90px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 6px;
+    }
+
+    .cal-cell.today {
+        border-color: var(--brand-primary);
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .day-number {
+        font-size: 0.8rem;
+        margin-bottom: 4px;
+    }
+
+    .event-chip {
+        padding: 3px 6px;
+        font-size: 0.7rem;
+        border-radius: 4px;
+        margin-bottom: 3px;
+        border: none;
+        background: rgba(59, 130, 246, 0.2);
+        color: var(--brand-primary);
+        border-left: 2px solid var(--brand-primary);
+    }
+
+    .event-time {
+        display: none;
+        /* Hide time on mobile to save space */
+    }
+
+    /* Bottom Sheet Modal */
+    .modal-backdrop {
+        align-items: flex-end;
+        /* Align to bottom */
+    }
+
+    .modal {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 24px 24px 0 0;
+        padding: 24px 24px 40px 24px;
+        margin: 0;
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        border-bottom: none;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    .modal h3 {
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .modal .field input,
+    .modal .field select,
+    .modal .field textarea {
+        font-size: 1rem;
+        /* Prevent zoom on iOS */
+        padding: 12px;
+    }
+
+    .modal .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px;
+        font-size: 1rem;
+    }
+
+    .modal div[style*="justify-content:flex-end"] {
+        flex-direction: column-reverse;
+        gap: 12px;
+    }
+
+    .modal div[style*="justify-content:flex-end"] .btn {
+        width: 100%;
+        margin: 0;
+    }
 }
