@@ -15,4 +15,9 @@
 python manage.py collectstatic --no-input
 python manage.py migrate
 
-exec "$@"
+if [ -z "$1" ]; then
+    echo "No command provided, starting Gunicorn..."
+    exec gunicorn circle_app.wsgi:application --bind 0.0.0.0:$PORT
+else
+    exec "$@"
+fi
