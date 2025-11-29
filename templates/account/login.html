@@ -2,14 +2,14 @@
 {% load i18n %}
 {% load account socialaccount %}
 
-{% block title %}{% trans "Sign In" %}{% endblock %}
+{% block title %}ログイン{% endblock %}
 
 {% block content %}
 <div class="flex-center" style="min-height: 80vh; padding: 20px;">
     <div class="card" style="width: 100%; max-width: 420px; padding: 40px; border-top: 4px solid var(--brand-primary);">
         <h1
             style="text-align: center; margin-bottom: 32px; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em;">
-            {% trans "Sign In" %}</h1>
+            ログイン</h1>
 
         {% get_providers as socialaccount_providers %}
 
@@ -22,8 +22,7 @@
             <div class="login-or"
                 style="text-align:center; margin: 32px 0; position:relative; color:var(--text-muted); font-size:0.85rem;">
                 <span
-                    style="background:var(--bg-surface); padding:0 12px; position:relative; z-index:1; font-weight:600; letter-spacing:0.05em;">{%
-                    trans 'OR' %}</span>
+                    style="background:var(--bg-surface); padding:0 12px; position:relative; z-index:1; font-weight:600; letter-spacing:0.05em;">または</span>
                 <div style="position:absolute; top:50%; left:0; right:0; height:1px; background:var(--border-default);">
                 </div>
             </div>
@@ -39,7 +38,7 @@
             <div
                 style="background:rgba(239,68,68,0.1); border:1px solid var(--accent-danger); color:var(--accent-danger); padding:16px; border-radius:var(--radius-md); margin-bottom:24px; font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
                 {% for field in form %}
-                {% for error in field.errors %}
+                {% for error in field in field.errors %}
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span style="font-size:1.1em;">⚠️</span> {{ error }}
                 </div>
@@ -56,13 +55,13 @@
             {% endif %}
 
             <div class="field">
-                <label for="{{ form.login.id_for_label }}">{% trans "E-mail or Username" %}</label>
+                <label for="{{ form.login.id_for_label }}">メールアドレス または ユーザー名</label>
                 <input type="text" name="login" placeholder="example@email.com" autocomplete="username" required
                     id="{{ form.login.id_for_label }}">
             </div>
 
             <div class="field">
-                <label for="{{ form.password.id_for_label }}">{% trans "Password" %}</label>
+                <label for="{{ form.password.id_for_label }}">パスワード</label>
                 <input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required
                     id="{{ form.password.id_for_label }}">
             </div>
@@ -72,12 +71,11 @@
             {% endif %}
 
             <button class="primaryAction btn btn-primary" type="submit"
-                style="width:100%; margin-top:12px; padding: 14px;">{% trans "Sign In" %}</button>
+                style="width:100%; margin-top:12px; padding: 14px;">ログイン</button>
 
             <div style="text-align:center; margin-top:24px; font-size:0.9rem;">
                 <a class="button secondaryAction" href="{% url 'account_reset_password' %}"
-                    style="color:var(--text-muted); text-decoration:underline; text-underline-offset:4px;">{% trans
-                    "Forgot Password?" %}</a>
+                    style="color:var(--text-muted); text-decoration:underline; text-underline-offset:4px;">パスワードをお忘れですか？</a>
             </div>
         </form>
     </div>
