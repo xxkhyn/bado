@@ -254,50 +254,6 @@ a:hover {
     font-size: 0.9rem;
     border: none;
     cursor: pointer;
-    transition: all 0.2s;
-    background: var(--brand-primary);
-    color: white;
-}
-
-.btn:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-.btn.gray {
-    background: var(--bg-hover);
-    color: var(--text-main);
-}
-
-.btn.gray:hover {
-    background: var(--border-default);
-}
-
-.btn.red {
-    background: var(--accent-danger);
-    color: white;
-}
-
-/* Forms & Inputs */
-.field {
-    margin-bottom: 16px;
-}
-
-.field label {
-    display: block;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-    font-weight: 500;
-}
-
-input,
-select,
-textarea {
     width: 100%;
     background: var(--bg-body);
     border: 1px solid var(--border-default);
