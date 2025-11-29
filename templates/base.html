@@ -1,43 +1,29 @@
-{% load static %}
-{% load socialaccount %}
+{% with sa=user.socialaccount_set.first %}
+{% if sa and sa.get_avatar_url %}
+{% with avatar_url=sa.get_avatar_url %}
+<button id="avatarBtn" class="avatar-btn" aria-haspopup="menu" aria-expanded="false">
+  <img class="avatar-img" src="{{ avatar_url }}" alt="avatar">
+  <span style="font-size:0.85rem; opacity:.9;">{{ user.first_name|default:user.username }}</span>
+</button>
+{% endwith %}
+{% else %}
+<button id="avatarBtn" class="avatar-btn" aria-haspopup="menu" aria-expanded="false">
+  <div class="avatar-fallback">{{ user.username|first|upper }}</div>
+  <span style="font-size:0.85rem; opacity:.9;">{{ user.username }}</span>
+</button>
+{% endif %}
+{% endwith %}
 
-<!DOCTYPE html>
-
-<nav class="tabs" aria-label="Primary">
-  <a class="tab {% if request.resolver_match.url_name == 'calendar' or request.resolver_match.url_name == 'home' %}active{% endif %}"
-    href="{% url 'calendar' %}">📅 カレンダー</a>
-  <a class="tab {% if request.resolver_match.url_name == 'magazines_list' %}active{% endif %}"
-    href="{% url 'magazines_list' %}">📖 月刊誌</a>
+<nav id="userMenu" class="menu" role="menu">
+  <div class="hdr">{{ user.email }}</div>
+  <a href="{% url 'calendar' %}" role="menuitem">ホーム（カレンダー）</a>
+  <a href="{% url 'magazines_list' %}" role="menuitem">月刊誌</a>
+  <a href="/accounts/email/" role="menuitem">アカウント設定</a>
+  <a href="/accounts/logout/" role="menuitem">ログアウト</a>
 </nav>
-
-<div class="right">
-  {% if user.is_authenticated %}
-  {% with sa=user.socialaccount_set.first %}
-  {% if sa and sa.get_avatar_url %}
-  {% with avatar_url=sa.get_avatar_url %}
-  <button id="avatarBtn" class="avatar-btn" aria-haspopup="menu" aria-expanded="false">
-    <img class="avatar-img" src="{{ avatar_url }}" alt="avatar">
-    <span style="font-size:0.85rem; opacity:.9;">{{ user.first_name|default:user.username }}</span>
-  </button>
-  {% endwith %}
-  {% else %}
-  <button id="avatarBtn" class="avatar-btn" aria-haspopup="menu" aria-expanded="false">
-    <div class="avatar-fallback">{{ user.username|first|upper }}</div>
-    <span style="font-size:0.85rem; opacity:.9;">{{ user.username }}</span>
-  </button>
-  {% endif %}
-  {% endwith %}
-
-  <nav id="userMenu" class="menu" role="menu">
-    <div class="hdr">{{ user.email }}</div>
-    <a href="{% url 'calendar' %}" role="menuitem">ホーム（カレンダー）</a>
-    <a href="{% url 'magazines_list' %}" role="menuitem">月刊誌</a>
-    <a href="/accounts/email/" role="menuitem">アカウント設定</a>
-    <a href="/accounts/logout/" role="menuitem">ログアウト</a>
-  </nav>
-  {% else %}
-  <a class="login-btn" href="{% provider_login_url 'google' %}">Googleでログイン</a>
-  {% endif %}
+{% else %}
+<a class="login-btn" href="{% provider_login_url 'google' %}">Googleでログイン</a>
+{% endif %}
 </div>
 </header>
 

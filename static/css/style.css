@@ -239,31 +239,11 @@ a:hover {
 
 .menu a:hover {
     background: var(--bg-hover);
-    border-left-color: var(--brand-primary);
-    color: white;
-}
-
-/* Buttons */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 16px;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.9rem;
-    border: none;
-    cursor: pointer;
-    width: 100%;
-    background: var(--bg-body);
-    border: 1px solid var(--border-default);
-    color: var(--text-main);
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
     display: none;
+    /* Hidden by default */
     align-items: center;
     justify-content: center;
     z-index: 2000;
@@ -485,8 +465,6 @@ a:hover {
 }
 
 /* Utilities */
-}
-
 .grid-responsive {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -536,3 +514,5 @@ a:hover {
 .text-muted {
     color: var(--text-muted);
 }
+
+```
