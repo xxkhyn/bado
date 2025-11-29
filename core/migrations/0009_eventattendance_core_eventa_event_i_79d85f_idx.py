@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0008_auto_20251023_0025'),
+        ('core', '0007_eventattendance_delete_eventvote_and_more'),
     ]
 
     operations = [
