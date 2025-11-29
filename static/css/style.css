@@ -23,47 +23,6 @@
     --text-dim: #64748b;
     /* Slate 500 */
 
-    --brand-primary: #3b82f6;
-    /* Blue 500 */
-    --brand-hover: #2563eb;
-    /* Blue 600 */
-    --brand-glow: rgba(59, 130, 246, 0.5);
-
-    --accent-success: #10b981;
-    /* Emerald 500 */
-    --accent-danger: #ef4444;
-    /* Red 500 */
-    --accent-warning: #f59e0b;
-    /* Amber 500 */
-    top: 0;
-    left: 0;
-    right: 0;
-    height: var(--header-height);
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-subtle);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    z-index: 1000;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.brand {
-    font-size: 1.25rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #60a5fa, #a78bfa);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.02em;
-}
-
-/* Navigation Tabs */
-.tabs {
-    display: flex;
     gap: 20px;
 }
 
