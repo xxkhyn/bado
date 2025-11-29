@@ -38,7 +38,7 @@
             <div
                 style="background:rgba(239,68,68,0.1); border:1px solid var(--accent-danger); color:var(--accent-danger); padding:16px; border-radius:var(--radius-md); margin-bottom:24px; font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
                 {% for field in form %}
-                {% for error in field in field.errors %}
+                {% for error in field.errors %}
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span style="font-size:1.1em;">⚠️</span> {{ error }}
                 </div>
