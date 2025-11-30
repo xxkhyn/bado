@@ -12,6 +12,7 @@ urlpatterns = [
     # メインページ
     path("", core_views.home, name="home"),
     path("calendar/", core_views.calendar_view, name="calendar"),
+    path("mypage/", core_views.mypage, name="mypage"),
 
     # イベントAPI
     path("events-json/", core_views.events_json, name="events_json"),

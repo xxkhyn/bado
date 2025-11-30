@@ -284,3 +284,29 @@ def event_checkin(request, event_id, token):
 
     # 好きな画面に戻す（カレンダーでOKならこれで）
     return redirect("calendar")
+
+
+@login_required
+def mypage(request):
+    """マイページ: 活動履歴とスタッツを表示"""
+    today = timezone.now()
+    
+    # 自分が参加した(している)イベントのIDリストを取得
+    attended_event_ids = EventAttendance.objects.filter(user=request.user).values_list('event_id', flat=True)
+    
+    # 全参加イベント
+    all_attended_events = Event.objects.filter(id__in=attended_event_ids).order_by('-start')
+    
+    # 統計
+    total_count = all_attended_events.count()
+    
+    # 予定と履歴に分割
+    upcoming_events = all_attended_events.filter(start__gte=today).order_by('start')
+    past_events = all_attended_events.filter(start__lt=today).order_by('-start')
+
+    return render(request, "core/mypage.html", {
+        "user": request.user,
+        "total_count": total_count,
+        "upcoming_events": upcoming_events,
+        "past_events": past_events,
+    })

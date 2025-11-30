@@ -36,79 +36,29 @@
       {% endwith %}
       {% else %}
       <button id="avatarBtn" class="avatar-btn" aria-haspopup="menu" aria-expanded="false">
-        <div class="avatar-fallback">{{ user.username|first|upper }}</div>
-        <span style="font-size:0.85rem; opacity:.9;">{{ user.username }}</span>
-      </button>
-      {% endif %}
-      {% endwith %}
-
-      <nav id="userMenu" class="menu" role="menu">
-        <div class="hdr">{{ user.email }}</div>
-        <a href="{% url 'calendar' %}" role="menuitem">ホーム（カレンダー）</a>
-        <a href="{% url 'magazines_list' %}" role="menuitem">月刊誌</a>
-        <a href="/accounts/email/" role="menuitem">アカウント設定</a>
-        <a href="/accounts/logout/" role="menuitem">ログアウト</a>
-      </nav>
-      {% else %}
-      <a class="login-btn" href="{% provider_login_url 'google' %}">Googleでログイン</a>
-      {% endif %}
-    </div>
-  </header>
-
-  <div class="wrap">
-    {% block content %}{% endblock %}
-  </div>
-
-  <!-- Mobile Navigation (Visible only on small screens) -->
-  <nav class="mobile-nav">
-    <a href="{% url 'calendar' %}"
-      class="{% if request.resolver_match.url_name == 'calendar' or request.resolver_match.url_name == 'home' %}active{% endif %}">
-      <span>📅</span>
-      <span>カレンダー</span>
-    </a>
-    <a href="{% url 'magazines_list' %}"
-      class="{% if request.resolver_match.url_name == 'magazines_list' %}active{% endif %}">
-      <span>📖</span>
-      <span>月刊誌</span>
-    </a>
-    {% if user.is_authenticated %}
-    <a href="#" id="mobileMenuBtn">
-      <span>👤</span>
-      <span>マイページ</span>
-    </a>
-    {% else %}
-    <a href="{% provider_login_url 'google' %}">
-      <span>🔑</span>
-      <span>ログイン</span>
-    </a>
-    {% endif %}
-  </nav>
-
-  <script>
-    // avatar dropdown
-    const btn = document.getElementById('avatarBtn');
-    const menu = document.getElementById('userMenu');
-    if (btn && menu) {
-      const toggle = () => {
+        if (btn && menu) {
+        const toggle = () => {
         const open = menu.style.display === 'block';
         menu.style.display = open ? 'none' : 'block';
         btn.setAttribute('aria-expanded', (!open).toString());
-      };
-      btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
-      document.addEventListener('click', () => { if (menu.style.display === 'block') { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); } });
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); } });
-    }
+        };
+        btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+        document.addEventListener('click', () => { if (menu.style.display === 'block') { menu.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false'); } });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { menu.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false'); } });
+        }
 
-    // Mobile menu trigger (re-use the desktop menu for now, or just scroll to top)
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    if (mobileMenuBtn && btn) {
-      mobileMenuBtn.addEventListener('click', (e) => {
+        // Mobile menu trigger (re-use the desktop menu for now, or just scroll to top)
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        if (mobileMenuBtn && btn) {
+        mobileMenuBtn.addEventListener('click', (e) => {
         e.preventDefault();
         btn.click(); // Simulate click on desktop avatar button to open menu
-      });
-    }
-  </script>
-  {% block body_end %}{% endblock %}
+        });
+        }
+        </script>
+        {% block body_end %}{% endblock %}
 </body>
 
 </html>
