@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="5" dy="5" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" ry="128" fill="url(#grad1)"/>
+  
+  <!-- Shuttlecock Icon -->
+  <g transform="translate(256, 256) scale(0.8)" filter="url(#shadow)">
+    <!-- Feathers -->
+    <path d="M-60,-80 Q0,-180 60,-80 L40,40 L-40,40 Z" fill="white" opacity="0.9"/>
+    <path d="M-60,-80 Q-90,-150 -20,-100 L-40,40 Z" fill="white" opacity="0.8"/>
+    <path d="M60,-80 Q90,-150 20,-100 L40,40 Z" fill="white" opacity="0.8"/>
+    
+    <!-- Cork -->
+    <path d="M-40,40 L40,40 Q40,90 0,90 Q-40,90 -40,40 Z" fill="#f1f5f9"/>
+    <path d="M-40,55 L40,55" stroke="#cbd5e1" stroke-width="2"/>
+  </g>
+</svg>

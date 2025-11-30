@@ -2,6 +2,10 @@
 {% load socialaccount %}
 
 <!DOCTYPE html>
+{% load static %}
+{% load socialaccount %}
+
+<!DOCTYPE html>
 <html lang="ja">
 
 <head>
@@ -10,6 +14,8 @@
   <title>{% block title %}bado{% endblock %}</title>
   <meta name="theme-color" content="#0f172a">
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v=6">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <link rel="apple-touch-icon" href="{% static 'images/icon.png' %}">
   {% block head_extra %}{% endblock %}
 </head>
 
@@ -86,6 +92,15 @@
   </nav>
 
   <script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register("{% static 'sw.js' %}")
+          .then(reg => console.log('SW registered:', reg))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+
     // avatar dropdown
     const btn = document.getElementById('avatarBtn');
     const menu = document.getElementById('userMenu');
