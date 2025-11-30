@@ -96,6 +96,7 @@
         btn.setAttribute('aria-expanded', (!open).toString());
       };
       btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+      menu.addEventListener('click', (e) => e.stopPropagation());
       document.addEventListener('click', () => { if (menu.style.display === 'block') { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); } });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); } });
     }
