@@ -20,7 +20,7 @@ class ProfileForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["role", "secret_code"]
+        fields = ["role"]
         widgets = {
             "role": forms.RadioSelect(choices=[
                 (User.Role.MEMBER, "一般"),
