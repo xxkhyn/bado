@@ -13,6 +13,7 @@ urlpatterns = [
     path("", core_views.home, name="home"),
     path("calendar/", core_views.calendar_view, name="calendar"),
     path("mypage/", core_views.mypage, name="mypage"),
+    path("profile/edit/", core_views.profile_edit, name="profile_edit"),  # ★ プロフィール編集
 
     # イベントAPI
     path("events-json/", core_views.events_json, name="events_json"),

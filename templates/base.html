@@ -53,7 +53,7 @@
         <a href="{% url 'mypage' %}" role="menuitem">マイページ</a>
         <a href="{% url 'calendar' %}" role="menuitem">カレンダー</a>
         <a href="{% url 'magazines_list' %}" role="menuitem">月刊誌</a>
-        <a href="/accounts/email/" role="menuitem">アカウント設定</a>
+        <a href="{% url 'profile_edit' %}" role="menuitem">アカウント設定</a>
         <a href="/accounts/logout/" role="menuitem">ログアウト</a>
       </nav>
       {% else %}

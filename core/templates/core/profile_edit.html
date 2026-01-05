@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}プロフィール設定 | bado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>プロフィール設定</h2>
+</div>
+
+<div class="content-card">
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
+            {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form method="post" class="styled-form">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label>ユーザー名</label>
+            <div class="form-value">{{ user.username }}</div>
+        </div>
+
+        <div class="form-group">
+            <label>メールアドレス</label>
+            <div class="form-value">{{ user.email }}</div>
+        </div>
+
+        <div class="form-group">
+            {{ form.as_p }}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">保存する</button>
+            <a href="{% url 'home' %}" class="btn-secondary">戻る</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .styled-form {
+        max_width: 500px;
+        margin: 0 auto;
+    }
+
+    .form-value {
+        padding: 8px 0;
+        color: #888;
+    }
+
+    ul#id_role {
+        list-style: none;
+        padding: 0;
+    }
+
+    ul#id_role li {
+        display: inline-block;
+        margin-right: 20px;
+    }
+</style>
+{% endblock %}

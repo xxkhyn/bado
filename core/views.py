@@ -17,7 +17,7 @@ from django.contrib import messages
 import qrcode
 
 from .models import Event, MagazineIssue, EventAttendance, User
-from .forms import MagazineUploadForm
+from .forms import MagazineUploadForm, ProfileForm
 
 
 def _make_aware(dt):
@@ -399,3 +399,23 @@ def member_update_role(request, user_id):
     target_user.save()
     
     return JsonResponse({"status": "updated", "role": target_user.get_role_display()})
+
+
+@login_required
+def profile_edit(request):
+    """
+    プロフィール編集画面。
+    自分の役職（General / Officer）を変更できる。
+    """
+    if request.method == "POST":
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "プロフィールを更新しました。")
+            return redirect("profile_edit")
+    else:
+        form = ProfileForm(instance=request.user)
+    
+    return render(request, "core/profile_edit.html", {
+        "form": form,
+    })
