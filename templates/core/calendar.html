@@ -5,7 +5,8 @@
 
 {% block content %}
 <!-- Configuration Data -->
-<div id="cfg" data-year="{{ year }}" data-month="{{ month }}"></div>
+<div id="cfg" data-year="{{ year }}" data-month="{{ month }}"
+  data-can-add="{% if request.user.is_staff or request.user.role == 'officer' %}1{% else %}0{% endif %}"></div>
 
 <!-- Calendar Container -->
 <div class="cal-container">
@@ -22,7 +23,9 @@
 
   <div
     style="padding:10px 20px; display:flex; justify-content:flex-end; background:var(--bg-surface); border-bottom:1px solid var(--border-subtle);">
+    {% if request.user.is_staff or request.user.role == "officer" %}
     <button class="btn" id="addTodayBtn" style="font-size:0.8rem; padding:6px 12px;">+ 今日に追加</button>
+    {% endif %}
   </div>
 
   <!-- Calendar Grid -->
@@ -49,7 +52,7 @@
         data-title="{{ e.title|escape }}" data-start="{{ e.start|date:'c' }}"
         data-end="{% if e.end %}{{ e.end|date:'c' }}{% endif %}"
         data-desc="{{ e.description|default_if_none:''|escape }}"
-        data-can-manage="{% if request.user.is_staff or e.user_id == request.user.id %}1{% else %}0{% endif %}">
+        data-can-manage="{% if request.user.is_staff or request.user.role == 'officer' %}1{% else %}0{% endif %}">
         <div class="event-time">{{ e|time_range }}</div>
         <div class="event-title">{{ e.title }}</div>
       </div>
@@ -161,7 +164,32 @@
         fStartTime.value = '09:00';
         fEndTime.value = '';
         fDesc.value = '';
+
+        // 権限がない場合は保存・削除ボタンを隠す (新規作成時もCell clickで弾かれるのでここは編集時のみ)
+        if (payload.id && !currentCanManage) {
+        saveBtn.style.display = 'none';
         delBtn.style.display = 'none';
+        // 入力も無効化
+        fTitle.disabled = true;
+        fDay.disabled = true;
+        fStartTime.disabled = true;
+        fEndTime.disabled = true;
+        fDesc.disabled = true;
+        } else {
+        saveBtn.style.display = 'inline-block';
+        fTitle.disabled = false;
+        fDay.disabled = false;
+        fStartTime.disabled = false;
+        fEndTime.disabled = false;
+        fDesc.disabled = false;
+
+        // 新規なら削除ボタンなし、既存ならあり
+        if (payload.id) {
+        delBtn.style.display = 'inline-block';
+        } else {
+        delBtn.style.display = 'none';
+        }
+        }
 
         attendBox.style.display = 'none';
         attendCount.textContent = '';
@@ -185,6 +213,11 @@
         document.querySelectorAll('.cal-cell').forEach(div => {
         div.addEventListener('click', (e) => {
         if (e.target.closest('.event-chip')) return;
+
+        // 権限チェック
+        const canAdd = (document.getElementById('cfg').dataset.canAdd === '1');
+        if (!canAdd) return;
+
         const day = Number(div.dataset.date.split('-')[2]);
         openModal({});
         fDay.value = day;

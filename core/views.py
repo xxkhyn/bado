@@ -105,6 +105,10 @@ def _auto_end(start_dt, end_dt):
 @login_required
 @require_http_methods(["POST"])
 def event_add(request):
+    # 権限チェック (管理者 or 運営)
+    if not (request.user.is_staff or request.user.role == User.Role.OFFICER):
+        return HttpResponse(status=403)
+
     data = json.loads(request.body or "{}")
     start_dt = parse_datetime(data.get("start"))
     if not start_dt:
@@ -127,8 +131,13 @@ def event_add(request):
 @login_required
 @require_http_methods(["POST"])
 def event_update(request, event_id):
+    # 権限チェック (管理者 or 運営)
+    if not (request.user.is_staff or request.user.role == User.Role.OFFICER):
+        return HttpResponse(status=403)
+
     data = json.loads(request.body or "{}")
-    event = get_object_or_404(Event, id=event_id, user=request.user)
+    # 編集は作成者でなくても、運営権限があれば可能とする
+    event = get_object_or_404(Event, id=event_id)
 
     start_dt = parse_datetime(data.get("start")) if data.get("start") else event.start
     if "end" in data:
@@ -149,7 +158,11 @@ def event_update(request, event_id):
 @login_required
 @require_http_methods(["POST"])
 def event_delete(request, event_id):
-    event = get_object_or_404(Event, id=event_id, user=request.user)
+    # 権限チェック (管理者 or 運営)
+    if not (request.user.is_staff or request.user.role == User.Role.OFFICER):
+        return HttpResponse(status=403)
+
+    event = get_object_or_404(Event, id=event_id)
     event.delete()
     return JsonResponse({"status": "deleted"})
 
