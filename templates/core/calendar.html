@@ -93,6 +93,29 @@
       <label>メモ</label>
       <textarea id="fDesc" rows="3" placeholder="詳細を入力..."></textarea>
     </div>
+
+    <div id="attendBox" style="margin-top:20px; padding-top:10px; border-top:1px solid #ccc; display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <label>参加状況</label>
+        <span id="attendCount" style="font-weight:bold;"></span>
+      </div>
+      <div id="attendList" style="font-size:0.9rem; color:#666; margin-bottom:10px;"></div>
+      <button id="attendBtn" class="btn btn-outline" style="width:100%;">参加する</button>
+    </div>
+
+    <div id="qrBox" style="margin-top:20px; padding-top:10px; border-top:1px solid #ccc; display:none;">
+      <button id="showQrBtn" class="btn btn-outline" style="width:100%;">QRコードを表示</button>
+      <div id="qrImageWrapper" style="margin-top:10px; text-align:center; display:none;">
+        <img id="qrImage" src="" alt="QR" style="max-width:200px; border-radius:8px;">
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:24px; display:flex; justify-content:flex-end; gap:12px;">
+      <button id="deleteBtn" class="btn btn-danger" style="display:none;">削除</button>
+      <button id="cancelBtn" class="btn btn-secondary">キャンセル</button>
+      <button id="saveBtn" class="btn btn-primary">保存</button>
+    </div>
+
   </div>
 </div>
 {% endblock %}
