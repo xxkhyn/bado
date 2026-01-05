@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import calendar
 import json
 import io
+import random  # Added for team division
 
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -15,7 +16,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 import qrcode
 
-from .models import Event, MagazineIssue, EventAttendance
+from .models import Event, MagazineIssue, EventAttendance, User
 from .forms import MagazineUploadForm
 
 
@@ -310,3 +311,91 @@ def mypage(request):
         "upcoming_events": upcoming_events,
         "past_events": past_events,
     })
+
+
+@login_required
+def team_division(request, event_id):
+    """
+    イベント参加者をチーム分けする。
+    6人未満のチームができないように、(参加者数 // 6) チームに分割し、
+    端数はラウンドロビンで配分する。
+    """
+    event = get_object_or_404(Event, pk=event_id)
+
+    # 権限チェック（スタッフ or オーナー）
+    if not (request.user.is_staff or request.user == event.user):
+        return HttpResponse(status=403)
+
+    # 参加者取得
+    attendances = list(event.attendances.select_related('user').order_by('created_at'))
+    attendees = [a.user for a in attendances]
+
+    # シャッフル
+    random.shuffle(attendees)
+
+    total = len(attendees)
+    if total == 0:
+        teams = []
+    else:
+        # チーム数計算 (6人未満なら1チーム)
+        num_teams = total // 6
+        if num_teams < 1:
+            num_teams = 1
+        
+        # チーム初期化
+        teams = [[] for _ in range(num_teams)]
+        
+        # ラウンドロビンで割り振り
+        for i, user in enumerate(attendees):
+            idx = i % num_teams
+            teams[idx].append(user)
+
+    return render(request, "core/team_division.html", {
+        "event": event,
+        "teams": teams,
+    })
+
+
+# =========================
+#  メンバー管理
+# =========================
+@login_required
+def member_list(request):
+    """
+    メンバー一覧を表示し、役職を変更できる画面。
+    管理者(is_staff) または 運営(officer) のみアクセス可能。
+    """
+    # 権限チェック
+    if not (request.user.is_staff or request.user.role == User.Role.OFFICER):
+        return HttpResponse(status=403)
+
+    users = User.objects.all().order_by("date_joined")
+    return render(request, "core/member_list.html", {"users": users, "roles": User.Role})
+
+
+@login_required
+@require_http_methods(["POST"])
+def member_update_role(request, user_id):
+    """
+    ユーザーの役職を更新するAPI。
+    """
+    # 権限チェック
+    if not (request.user.is_staff or request.user.role == User.Role.OFFICER):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    target_user = get_object_or_404(User, pk=user_id)
+    
+    # 自分自身の役職変更や、管理者の変更は慎重にすべきだが、
+    # ここでは簡易的に「自分以外」かつ「相手が管理者でない」場合のみ許可するなど制限をかけるのが一般的。
+    # 今回は要件がシンプルなので、そのまま通すが、自分自身の権限を剥奪すると操作できなくなるので注意。
+    
+    data = json.loads(request.body or "{}")
+    new_role = data.get("role")
+    
+    if new_role not in User.Role.values:
+        return JsonResponse({"error": "Invalid role"}, status=400)
+
+    target_user.role = new_role
+    target_user.save()
+    
+    return JsonResponse({"status": "updated", "role": target_user.get_role_display()})

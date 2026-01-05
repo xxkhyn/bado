@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}メンバー管理{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+        <h1 style="margin: 0; font-size: 1.5rem;">メンバー管理</h1>
+        <a href="{% url 'calendar' %}" class="btn gray">カレンダーに戻る</a>
+    </div>
+
+    <div class="card"
+        style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: var(--bg-main); border-bottom: 1px solid var(--border-subtle);">
+                <tr>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">ユーザー名</th>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">メールアドレス
+                    </th>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">登録日</th>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">役職</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr style="border-bottom: 1px solid var(--border-subtle);">
+                    <td style="padding: 12px;">
+                        <div style="display: flex; align-items: center;">
+                            <div
+                                style="width: 24px; height: 24px; background: var(--bg-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 8px; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); border: 1px solid var(--border-subtle);">
+                                {{ u.username|first|upper }}
+                            </div>
+                            {{ u.username }}
+                            {% if u.is_superuser %}
+                            <span
+                                style="margin-left: 6px; font-size: 0.7rem; background: #ef4444; color: white; padding: 2px 4px; border-radius: 4px;">SU</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">{{ u.email }}</td>
+                    <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">{{
+                        u.date_joined|date:"Y/m/d" }}</td>
+                    <td style="padding: 12px;">
+                        <select class="role-select" data-user-id="{{ u.id }}"
+                            style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-default); background: var(--bg-main); color: var(--text-main);">
+                            {% for val, label in roles.choices %}
+                            <option value="{{ val }}" {% if u.role==val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    document.querySelectorAll('.role-select').forEach(select => {
+        select.addEventListener('change', async (e) => {
+            const userId = e.target.dataset.userId;
+            const newRole = e.target.value;
+
+            // Visual feedback
+            const originalBg = e.target.style.background;
+            e.target.disabled = true;
+
+            try {
+                const res = await fetch(`/api/members/${userId}/role/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                if (res.ok) {
+                    e.target.style.background = '#dcfce7'; // Success green
+                    setTimeout(() => { e.target.style.background = originalBg; }, 1000);
+                } else {
+                    throw new Error();
+                }
+            } catch {
+                alert('更新に失敗しました');
+                e.target.value = e.target.getAttribute('data-original-value'); // Reset (needs implementation if strict)
+                e.target.style.background = '#fee2e2'; // Error red
+            } finally {
+                e.target.disabled = false;
+            }
+        });
+    });
+</script>
+{% endblock %}

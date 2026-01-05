@@ -1,7 +1,9 @@
 import os
 import django
+import dotenv
 from django.contrib.auth import get_user_model
 
+dotenv.load_dotenv('.env.prod')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "circle_app.settings")
 django.setup()
 

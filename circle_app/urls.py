@@ -21,6 +21,7 @@ urlpatterns = [
     path("api/events/<int:event_id>/delete/", core_views.event_delete, name="event_delete"),
     path("api/events/<int:event_id>/vote/", core_views.event_vote, name="event_vote"),  # ← 参加トグル用
     path("api/events/<int:event_id>/attendees/", core_views.attendees_list, name="attendees_list"),
+    path("events/<int:event_id>/teams/", core_views.team_division, name="team_division"),  # ★ チーム分け
 
         # ★ QR 出席用
     path("events/<int:event_id>/qr/", core_views.event_qr, name="event_qr"),
@@ -30,6 +31,10 @@ urlpatterns = [
     # 月刊誌ページ
     path("magazines/", core_views.magazines_list, name="magazines_list"),
     path("magazines/upload/", core_views.magazines_upload, name="magazines_upload"),
+
+    # メンバー管理
+    path("members/", core_views.member_list, name="member_list"),
+    path("api/members/<int:user_id>/role/", core_views.member_update_role, name="member_update_role"),
 ]
 
 # 開発環境でメディアファイルを配信
