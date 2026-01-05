@@ -8,3 +8,5 @@ qrcode==8.0
 django-allauth==65.4.1
 requests==2.32.3
 python-dotenv==1.0.1
+PyJWT
+cryptography
