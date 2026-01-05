@@ -42,7 +42,7 @@
 
 <style>
     .styled-form {
-        max_width: 500px;
+        max-width: 500px;
         margin: 0 auto;
     }
 
@@ -61,4 +61,28 @@
         margin-right: 20px;
     }
 </style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const roleRadios = document.querySelectorAll('input[name="role"]');
+        const secretField = document.querySelector('#id_secret_code').closest('.form-group');
+
+        function toggleSecret() {
+            let isOfficer = false;
+            roleRadios.forEach(r => {
+                if (r.checked && r.value === "officer") isOfficer = true;
+            });
+
+            // "officer" is selected -> show secret field
+            if (isOfficer) {
+                secretField.style.display = "block";
+            } else {
+                secretField.style.display = "none";
+            }
+        }
+
+        roleRadios.forEach(r => r.addEventListener('change', toggleSecret));
+        toggleSecret(); // initial check
+    });
+</script>
 {% endblock %}

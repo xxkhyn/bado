@@ -163,6 +163,9 @@ ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 
+# 運営になるための合言葉 (環境変数で上書き可能)
+OFFICER_SECRET_CODE = os.environ.get("OFFICER_SECRET_CODE", "admin1234")
+
 # Email Backend Configuration
 # Default to console backend to prevent crashes if no SMTP is configured
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
