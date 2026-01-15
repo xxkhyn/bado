@@ -53,7 +53,7 @@ def calendar_view(request):
     end_range = weeks[-1][-1]
     qs = (
         Event.objects
-        .filter(user=request.user, start__date__gte=start_range, start__date__lte=end_range)
+        .filter(start__date__gte=start_range, start__date__lte=end_range)
         .order_by("start")
     )
 
@@ -81,7 +81,7 @@ def calendar_view(request):
 # =========================
 @login_required
 def events_json(request):
-    events = Event.objects.filter(user=request.user).order_by("start")
+    events = Event.objects.all().order_by("start")
     data = [{
         "id": e.id,
         "title": e.title,
