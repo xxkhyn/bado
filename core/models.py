@@ -15,7 +15,7 @@ class User(AbstractUser):
 class Event(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    start = models.DateTimeField()
+    start = models.DateTimeField(db_index=True)
     end = models.DateTimeField(null=True, blank=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

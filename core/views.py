@@ -1,9 +1,11 @@
 # core/views.py
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import calendar
 import json
 import io
+import io
 import random  # Added for team division
+from django.db.models import Count  # Added for N+1 optimization
 
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -51,9 +53,14 @@ def calendar_view(request):
     # 画面に表示される範囲でイベント取得
     start_range = weeks[0][0]
     end_range = weeks[-1][-1]
+    
+    # datetime に変換して範囲検索（インデックス有効化のため）
+    start_dt = _make_aware(datetime.combine(start_range, datetime.min.time()))
+    end_dt = _make_aware(datetime.combine(end_range, datetime.max.time()))
+
     qs = (
         Event.objects
-        .filter(start__date__gte=start_range, start__date__lte=end_range)
+        .filter(start__gte=start_dt, start__lte=end_dt)
         .order_by("start")
     )
 
@@ -81,14 +88,15 @@ def calendar_view(request):
 # =========================
 @login_required
 def events_json(request):
-    events = Event.objects.all().order_by("start")
+    # N+1問題解消: attendances の数を事前に計算しておく
+    events = Event.objects.annotate(attending_count=Count("attendances")).order_by("start")
     data = [{
         "id": e.id,
         "title": e.title,
         "start": e.start.isoformat(),
         "end": e.end.isoformat() if e.end else None,
         "description": e.description,
-        "attending_count": e.attendances.count(),  # 参加人数
+        "attending_count": e.attending_count,  # 参加人数 (annotateで取得した値)
     } for e in events]
     return JsonResponse(data, safe=False)
 
