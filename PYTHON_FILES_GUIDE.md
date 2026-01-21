@@ -1,124 +1,174 @@
-# 🐍 Pythonファイル徹底解説 (初心者向け)
+# 🐍 Pythonコード詳細解説書 (操作連動版)
 
-「これ何語？」レベルからでも面接で説明できるよう、**コードの読み方** を中心に解説します。
-
----
-
-## � Pythonコードの基本ルール
-
-まずは、どのファイルにも出てくる「共通の書き方」を覚えましょう。
-
-*   **`import ...` / `from ... import ...`**:
-    *   **意味**: 「道具箱を取り出す」
-    *   **例**: `from django.db import models` → djangoのdb機能から `models` という道具を使えるようにする。
-*   **`class Xxx(Yyy):`**:
-    *   **意味**: 「原本(Yyy)をコピーして、新しい機能(Xxx)を作る」
-    *   **例**: `class Event(models.Model):` → Django標準のモデル機能をコピーして、`Event` という独自データを作る。
-*   **`def xxx(request):`**:
-    *   **意味**: 「処理のまとまり（関数）を作る」
-    *   **例**: `def calendar_view(request):` → 「カレンダー表示」という名前の処理を定義する。
+「**どのボタンを押したら、どのコードが動くのか**」をファイルごとに徹底解説します。
+面接で「この機能はどう動いていますか？」と聞かれたら、このチャートを思い浮かべてください。
 
 ---
 
-## 📂 1. `core/models.py` (データの設計図)
+## 📂 1. `core/views.py` (アプリの動作・メイン)
 
-「どんなデータを保存するか」を決めている場所です。Excelの「列名」を決めるイメージです。
+**役割**: ユーザーの操作を受け取り、画面を返す「司令塔」です。
 
-### コードの読み方
+### 📅 シナリオA: 「カレンダー画面を開く」
+1.  **操作**: ユーザーがブラウザで `/calendar/` にアクセス。
+2.  **トリガー**: `urls.py` が `views.calendar_view` を呼び出す。
+3.  **処理コード (`calendar_view` 関数)**:
+    ```python
+    @login_required  # ① ログインしていない人はログイン画面へ飛ばす
+    def calendar_view(request):
+        # ② 今月の1日と末日を計算する
+        today = timezone.localtime()
+        start_date = today.replace(day=1)
+        end_date = ...
+        
+        # ③ データベースからイベントを検索 (インデックス検索で高速！)
+        # 「開始日が start_date 以上、かつ終了日が end_date 以下」
+        events = Event.objects.filter(start__gte=start_date, start__lte=end_date)
+        
+        # ④ HTMLを表示 ('events' という名前でデータを渡す)
+        return render(request, "core/calendar.html", {"events": events})
+    ```
+
+### ✅ シナリオB: 「参加ボタンを押す」
+1.  **操作**: カレンダー上の「参加」ボタンをクリック。
+2.  **トリガー**: JavaScript が裏で `/event/vote/123/` へ通信 (Fetch API)。
+3.  **処理コード (`event_vote` 関数)**:
+    ```python
+    @login_required
+    def event_vote(request, event_id):
+        # ① 指定されたイベントを探す
+        event = get_object_or_404(Event, id=event_id)
+        
+        # ② 「参加記録」を作る、または取得する (get_or_create)
+        attendance, created = EventAttendance.objects.get_or_create(
+            event=event, user=request.user
+        )
+        
+        # ③ Toggle処理 (あれば削除、なければ作成)
+        if not created:
+            attendance.delete()  # キャンセル
+            action = "removed"
+        else:
+            action = "added"     # 参加
+            
+        # ④ 結果をJSONで返す (画面遷移させないため)
+        return JsonResponse({"status": "success", "action": action})
+    ```
+
+### 📷 シナリオC: 「QRコードでチェックイン」
+1.  **操作**: カメラでQRコードを読み取る (`/event/checkin/123/`)。
+2.  **処理コード (`event_checkin` 関数)**:
+    ```python
+    def event_checkin(request, event_id):
+        # ① 参加記録を取得 (なければ作る)
+        attendance, created = EventAttendance.objects.get_or_create(...)
+        
+        # ② 出席時間を記録 (ここが重要！)
+        # まだチェックインしていなければ、現在時刻を書き込む
+        if not attendance.checked_in_at:
+            attendance.checked_in_at = timezone.now()
+            attendance.save()
+            msg = "出席しました！"
+        else:
+            msg = "既に出席済みです"
+            
+        # ③ メッセージを表示
+        return render(request, "core/checkin_result.html", {"message": msg})
+    ```
+
+---
+
+## 📂 2. `core/models.py` (データ設計図)
+
+**役割**: データの「形」と「ルール」を定義します。
+
+### 🗓️ Event (イベント情報)
 ```python
 class Event(models.Model):
-    # ユーザーと紐付ける (ForeignKey = 別のテーブルのIDを入れる)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # 編・集・削などの操作で「誰がやったか」を知るためにUserと紐付け
+    user = models.ForeignKey(User, ...) 
     
-    # タイトル (CharField = 短い文字)
-    title = models.CharField(max_length=255)
-    
-    # 開始日時 (DateTimeField = 日付と時間)
-    # db_index=True: これがあると検索が爆速になる魔法
+    # 検索を高速にするため db_index=True を設定
+    # 理由: カレンダーで「日付ごとの検索」が頻発するから
     start = models.DateTimeField(db_index=True)
 ```
-*   **面接ポイント**: 「`ForeignKey` は『誰が作ったか』を記録する紐付けです」「`db_index=True` をつけて検索を速くしました」と言えればOKです。
 
----
-
-## 📂 2. `core/views.py` (アプリの動作)
-
-「ページを表示する」「データを計算する」など、アプリの**メインの動き**が書かれています。
-
-### コードの読み方 (カレンダー表示)
+### 🙋 EventAttendance (参加/出席管理)
 ```python
-# @login_required: 「ログインしてる人しか使っちゃダメ」という門番
-@login_required
-def calendar_view(request):
-    # データベースから検索 (SQLの WHERE にあたる)
-    # 「開始日が start_dt 以上、かつ 終了日が end_dt 以下」のデータを取得
-    qs = Event.objects.filter(start__gte=start_dt, start__lte=end_dt)
+class EventAttendance(models.Model):
+    event = models.ForeignKey(Event, ...)
+    user = models.ForeignKey(User, ...)
     
-    # HTMLファイルを表示する (データ qs を一緒に渡す)
-    return render(request, "core/calendar.html", {"events": qs})
-```
-*   **`request`**: ユーザーからの「これ見せて」という要求データ。
-*   **`render`**: 「HTMLを作ってブラウザに返す」命令。
-
-### コードの読み方 (チェックイン機能)
-```python
-def event_checkin(request, event_id):
-    # データを新規作成、既にあれば取得 ( 便利機能: get_or_create )
-    attendance, created = EventAttendance.objects.get_or_create(...)
-
-    # created が True なら「今初めて作った＝初参加」
-    if created:
-        print("出席しました！")
-    else:
-        print("もう出席済みです")
-```
-
----
-
-## 📂 3. `core/urls.py` (案内所)
-
-URLとプログラム(`views.py`)を繋ぐ場所です。
-
-### コードの読み方
-```python
-urlpatterns = [
-    # ブラウザで '/calendar' にアクセスしたら -> views.calendar_view を動かす
-    path("calendar/", views.calendar_view, name="calendar"),
+    # ★ここがポイント！
+    # 「参加ボタンを押しただけ」なら Null (空)
+    # 「QRコードを読んだ」なら 時間が入る
+    checked_in_at = models.DateTimeField(null=True, blank=True)
     
-    # '<int:event_id>' は「ここに数字が入るよ」という意味
-    # 例: /checkin/123/ -> event_id=123 として受け取る
-    path("checkin/<int:event_id>/", views.event_checkin, name="event_checkin"),
-]
+    class Meta:
+        # 「同じ人が同じイベントに2回参加登録できない」というルール
+        unique_together = ('event', 'user')
 ```
 
 ---
 
-## 📂 4. `circle_app/settings.py` (各種設定)
+## 📂 3. `core/forms.py` (入力フォーム)
 
-アプリ全体の「環境設定」です。
+**役割**: ユーザーが入れたデータをチェックする関所です。
 
-### コードの読み方
+### 👤 ProfileForm (役職変更)
+**シナリオ**: ユーザーが「運営」になりたい時だけ「合言葉」を求める。
+
 ```python
-# データベースの設定
+class ProfileForm(forms.ModelForm):
+    def clean(self):
+        # ① ユーザーが入力したデータを取り出す
+        cleaned_data = super().clean()
+        role = cleaned_data.get('role')
+        secret = cleaned_data.get('secret_code')
+        
+        # ② チェックロジック
+        # 「もし運営(Officer)を選んだのに、合言葉が間違っていたらエラー」
+        if role == 'officer' and secret != settings.OFFICER_SECRET_CODE:
+            raise forms.ValidationError("合言葉が違います！")
+```
+
+---
+
+## 📂 4. `circle_app/settings.py` (全体設定)
+
+**役割**: アプリの心臓部設定。
+
+### ⚡ パフォーマンス設定
+```python
 DATABASES = {
     'default': {
-        # 'conn_max_age': DBとの電話を600秒間切りません（高速化）
-        'conn_max_age': 600, 
+        # 重要: データベースへの接続を600秒(10分)維持する
+        # これがないと、毎回SSL接続を行ってしまい通信が遅くなる
+        'conn_max_age': 600,
     }
 }
-
-# インストールされたアプリ (coreアプリもここで登録)
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'core',  # ← 自分で作ったアプリ
-]
 ```
 
 ---
 
-## 📂 5. その他のファイル
+## 📂 5. `core/tests.py` (テストコード)
 
-*   **`manage.py`**:
-    *   これを直接書き換えることはありません。コマンド (`python manage.py ...`) を使うための入り口です。
-*   **`requirements.txt`**:
-    *   「買い物リスト」です。`Django==5.0` のように、必要なライブラリ名だけが書いてあります。Pythonのコードではありません。
+**役割**: バグがないか自動で確認するロボット。
+
+### 🧪 EventSharingTest
+**シナリオ**: 一般メンバーが、運営の作ったイベントを見られるか？
+```python
+def test_member_can_see_officer_event(self):
+    # ① 運営ユーザーでイベントを作る
+    self.client.force_login(self.officer_user)
+    Event.objects.create(...)
+    
+    # ② 一般メンバーに切り替える
+    self.client.force_login(self.member_user)
+    
+    # ③ カレンダーページを開く
+    response = self.client.get('/calendar/')
+    
+    # ④ 判定: 画面にイベント名が表示されているか？
+    self.assertContains(response, "テストイベント")
+```

@@ -71,6 +71,7 @@ class EventAttendance(models.Model):
         related_name="attendances",
     )
     user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="event_attendances",
     )
