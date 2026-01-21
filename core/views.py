@@ -299,7 +299,10 @@ def event_checkin(request, event_id, token):
         user=request.user,
     )
 
-    if created:
+    # QR読み込み時点で「出席時刻」を記録
+    if not attendance.checked_in_at:
+        attendance.checked_in_at = timezone.now()
+        attendance.save()
         messages.success(request, f"{event.title} の出席を記録しました。")
     else:
         messages.info(request, f"{event.title} は既に出席済みです。")

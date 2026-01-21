@@ -71,10 +71,10 @@ class EventAttendance(models.Model):
         related_name="attendances",
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="event_attendances",
     )
+    checked_in_at = models.DateTimeField(null=True, blank=True, help_text="QRコードで出席記録した時間")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
