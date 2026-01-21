@@ -18,7 +18,7 @@ python manage.py migrate
 
 if [ -z "$1" ]; then
     echo "No command provided, starting Gunicorn..."
-    exec gunicorn circle_app.wsgi:application --bind 0.0.0.0:$PORT
+    exec gunicorn circle_app.wsgi:application --bind 0.0.0.0:$PORT --timeout 120
 else
     exec "$@"
 fi
