@@ -19,7 +19,7 @@
   {% block head_extra %}{% endblock %}
 </head>
 
-<body>
+<body data-sw-url="{% static 'sw.js' %}">
   <header class="topbar">
     <div class="brand">bado</div>
 
@@ -91,40 +91,7 @@
     {% endif %}
   </nav>
 
-  <script>
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register("{% static 'sw.js' %}")
-          .then(reg => console.log('SW registered:', reg))
-          .catch(err => console.log('SW registration failed:', err));
-      });
-    }
-
-    // avatar dropdown
-    const btn = document.getElementById('avatarBtn');
-    const menu = document.getElementById('userMenu');
-    if (btn && menu) {
-      const toggle = () => {
-        const open = menu.style.display === 'block';
-        menu.style.display = open ? 'none' : 'block';
-        btn.setAttribute('aria-expanded', (!open).toString());
-      };
-      btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
-      menu.addEventListener('click', (e) => e.stopPropagation());
-      document.addEventListener('click', () => { if (menu.style.display === 'block') { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); } });
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); } });
-    }
-
-    // Mobile menu trigger (re-use the desktop menu for now, or just scroll to top)
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    if (mobileMenuBtn && btn) {
-      mobileMenuBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        btn.click(); // Simulate click on desktop avatar button to open menu
-      });
-    }
-  </script>
+  <script src="{% static 'js/base.js' %}"></script>
   {% block body_end %}{% endblock %}
 </body>
 
