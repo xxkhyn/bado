@@ -229,10 +229,14 @@ def votes_summary(request, event_id):
 def attendees_list(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     qs = event.attendances.select_related('user').order_by('created_at')
-    names = list(qs.values_list('user__first_name', 'user__username'))
-    display = [(fn or un) for fn, un in names]
+    names = []
+    for a in qs:
+        display_name = a.user.first_name or a.user.username
+        is_checked_in = (a.checked_in_at is not None)
+        names.append({'name': display_name, 'checked_in': is_checked_in})
+    
     i_am = qs.filter(user=request.user).exists()
-    return JsonResponse({'names': display, 'count': len(display), 'i_am': i_am})
+    return JsonResponse({'names': names, 'count': len(names), 'i_am': i_am})
 
 
 
@@ -316,24 +320,21 @@ def mypage(request):
     """マイページ: 活動履歴とスタッツを表示"""
     today = timezone.now()
     
-    # 自分が参加した(している)イベントのIDリストを取得
-    attended_event_ids = EventAttendance.objects.filter(user=request.user).values_list('event_id', flat=True)
-    
-    # 全参加イベント
-    all_attended_events = Event.objects.filter(id__in=attended_event_ids).order_by('-start')
+    # 自分が参加した(している)イベントの参加情報を取得 (N+1問題対策で select_related を使用)
+    all_attendances = EventAttendance.objects.filter(user=request.user).select_related('event').order_by('-event__start')
     
     # 統計
-    total_count = all_attended_events.count()
+    total_count = all_attendances.count()
     
     # 予定と履歴に分割
-    upcoming_events = all_attended_events.filter(start__gte=today).order_by('start')
-    past_events = all_attended_events.filter(start__lt=today).order_by('-start')
+    upcoming_attendances = all_attendances.filter(event__start__gte=today).order_by('event__start')
+    past_attendances = all_attendances.filter(event__start__lt=today).order_by('-event__start')
 
     return render(request, "core/mypage.html", {
         "user": request.user,
         "total_count": total_count,
-        "upcoming_events": upcoming_events,
-        "past_events": past_events,
+        "upcoming_attendances": upcoming_attendances,
+        "past_attendances": past_attendances,
     })
 
 

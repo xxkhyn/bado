@@ -264,9 +264,24 @@ async function loadAttendance(eventId) {
         if (!res.ok) return;
         const data = await res.json();
         attendCount.textContent = `${data.count}名`;
-        attendList.textContent = (data.names && data.names.length) ?
-            data.names.join('、 ') :
-            '（まだ参加者はいません）';
+        attendCount.textContent = `${data.count}名`;
+
+        attendList.innerHTML = ''; // Clear text
+        if (data.names && data.names.length) {
+            data.names.forEach(user => {
+                const sp = document.createElement('span');
+                sp.style.marginRight = '8px';
+                sp.style.display = 'inline-block';
+                if (user.checked_in) {
+                    sp.innerHTML = `<span style="color:var(--accent-success)">✅</span> ${user.name}`;
+                } else {
+                    sp.innerHTML = `<span style="color:var(--text-muted)">🎫</span> ${user.name}`;
+                }
+                attendList.appendChild(sp);
+            });
+        } else {
+            attendList.textContent = '（まだ参加者はいません）';
+        }
 
         const iAm = typeof data.i_am === 'boolean' ? data.i_am : false;
         updateAttendBtn(iAm);

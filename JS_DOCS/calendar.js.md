@@ -49,9 +49,16 @@ saveBtn.onclick = async () => {
 ```
 *   **技術ポイント**: 画面遷移させずにデータを送る **Ajax (非同期通信)** を使っています。昔ながらの `<form>` 送信だと画面が真っ白になりますが、これならスマホアプリのようにヌルヌル動きます。
 
-### ④ 参加ボタンの即時反映 (`toggleAttendance`)
+### ④ 参加ボタンの即時反映 (`toggleAttendance` / `loadAttendance`)
 ```javascript
-updateAttendBtn(data.attending); // ボタンの色を変える
-attendCount.textContent = `${data.count}名`; // 人数を書き換える
+// loadAttendance の中身(一部抜粋)
+if (user.checked_in) {
+    // チェックイン済みなら緑のチェックマーク
+    sp.innerHTML = `<span style="color:var(--accent-success)">✅</span> ${user.name}`;
+} else {
+    // 予約だけならチケットアイコン
+    sp.innerHTML = `<span style="color:var(--text-muted)">🎫</span> ${user.name}`;
+}
 ```
+*   サーバーから送られてきた `checked_in` フラグを見て、**アイコンを出し分け**ています。これで「誰が実際に来たか」が一目でわかります。
 *   サーバーから「OK」が返ってきた瞬間、**ページを再読み込みせずに** JavaScriptだけで画面を書き換えています。これが「サクサク感」の正体です。
