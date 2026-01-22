@@ -323,8 +323,8 @@ def mypage(request):
     # 自分が参加した(している)イベントの参加情報を取得 (N+1問題対策で select_related を使用)
     all_attendances = EventAttendance.objects.filter(user=request.user).select_related('event').order_by('-event__start')
     
-    # 統計
-    total_count = all_attendances.count()
+    # 統計 (QRチェックイン済みのものだけを「参加回数」としてカウント)
+    total_count = all_attendances.filter(checked_in_at__isnull=False).count()
     
     # 予定と履歴に分割
     upcoming_attendances = all_attendances.filter(event__start__gte=today).order_by('event__start')
