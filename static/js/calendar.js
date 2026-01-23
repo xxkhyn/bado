@@ -334,3 +334,13 @@ showQrBtn.addEventListener('click', () => {
     qrImage.src = `/events/${editingId}/qr/?_=${Date.now()}`;
     qrImageWrapper.style.display = 'block';
 });
+
+// Team Division Button
+const teamDivBtn = document.getElementById('teamDivBtn');
+if (teamDivBtn) {
+    teamDivBtn.addEventListener('click', () => {
+        if (editingId) {
+            window.location.href = `/events/${editingId}/team_division/`;
+        }
+    });
+}
