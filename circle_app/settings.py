@@ -99,6 +99,7 @@ WSGI_APPLICATION = 'circle_app.wsgi.application'
 
 
 # Database
+DATABASES = {
     # 【Performance Tuning】
     # conn_max_age=600 (10分): DB接続を毎回切らずに使い回す設定。
     # 特にRender(Web)とSupabase(DB)が離れている場合、SSLハンドシェイクのオーバーヘッドを劇的に減らせる。

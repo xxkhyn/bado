@@ -261,20 +261,25 @@ delBtn.onclick = async () => {
 };
 
 // Attendance API
+// Attendance API
 async function loadAttendance(eventId) {
     try {
         const res = await fetch(`/api/events/${eventId}/attendees/`);
         if (!res.ok) return;
         const data = await res.json();
-        attendCount.textContent = `${data.count}名`;
+
+        // 1. 参加人数を更新
         attendCount.textContent = `${data.count}名`;
 
-        attendList.innerHTML = ''; // Clear text
+        // 2. 参加者リストの描画 (DOM生成)
+        attendList.innerHTML = ''; // 一旦クリア
         if (data.names && data.names.length) {
             data.names.forEach(user => {
                 const sp = document.createElement('span');
                 sp.style.marginRight = '8px';
                 sp.style.display = 'inline-block';
+
+                // 【UI状態管理】 チェックイン済みなら✅を表示
                 if (user.checked_in) {
                     sp.innerHTML = `<span style="color:var(--accent-success)">✅</span> ${user.name}`;
                 } else {
@@ -287,7 +292,7 @@ async function loadAttendance(eventId) {
         }
 
         const iAm = typeof data.i_am === 'boolean' ? data.i_am : false;
-        // 【UI State】 自分の参加状態に応じてボタンの見た目を変える
+        // 【UI状態管理】 自分の参加状態に応じてボタンの見た目を変える
         updateAttendBtn(iAm);
     } catch { }
 }
@@ -307,18 +312,23 @@ function updateAttendBtn(isAttending) {
 async function toggleAttendance() {
     if (!editingId) return;
     try {
-        // 【Optimistic UI】 (簡易実装)
+        // 【楽観的UI (Optimistic UI)】 (簡易実装)
         // 本来はここで先に updateAttendBtn(!current) を呼んでおくと、
         // ユーザーに「即座に反応した」と思わせることができる。今の実装はレスポンス待ち。
 
+        // 1. APIにPOSTリクエストを送る
+        // CSRFトークンをヘッダーに付けないとDjangoに拒否されるので注意
         const res = await fetch(`/api/events/${editingId}/vote/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrftoken
             }
         });
+
+        // 2. エラーハンドリング
         if (!res.ok) {
-            // 【Error Handling】 403 Forbidden は「イベント終了」を意味する
+            // 【エラーハンドリング】 403 Forbidden は「イベント終了」を意味する
+            // サーバー側 (views.py) で弾かれた場合の処理
             if (res.status === 403) {
                 alert('イベント終了後は変更できません');
             } else {
@@ -326,11 +336,13 @@ async function toggleAttendance() {
             }
             return;
         }
-        // サーバーから返ってきた最新の「正解データ」でUIを更新する
+
+        // 3. 成功時：サーバーからの最新データを画面に反映
+        // ここで参加人数 (count) や自分の状態 (attending) を更新する
         const data = await res.json();
         updateAttendBtn(data.attending);
         attendCount.textContent = `${data.count}名`;
-        loadAttendance(editingId); // Refresh list
+        loadAttendance(editingId); // 参加者リストも再取得して最新化
     } catch {
         alert('通信エラーが発生しました');
     }

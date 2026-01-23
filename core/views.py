@@ -197,16 +197,28 @@ def event_vote(request, event_id):
     既に参加していたら取り消し、まだなら参加。
     返り値: { attending: bool, count: int, names: [...](先頭10) }
     """
+    # 1. 投票対象のイベントを取得（存在しない場合は404エラー）
     event = get_object_or_404(Event, id=event_id)
+
+    # 2. 【ロジックの安全性】 不正操作防止
+    # timezone.now() は「タイムゾーンを考慮した現在時刻」を返す
+    # イベント終了後は参加ステータスを変更できないように制限
     if timezone.now() > event.end:
         return JsonResponse({"error": "イベントは終了しました"}, status=403)
+
+    # 3. 参加データの取得または作成 (get_or_create)
+    # obj: 取得/作成された EventAttendance オブジェクト
+    # created: 新規作成なら True, 既存なら False
     obj, created = EventAttendance.objects.get_or_create(event=event, user=request.user)
     if created:
+        # 新規作成された = 「参加ボタンを押した」 = 参加状態にする
         attending = True
     else:
+        # 既に存在していた = 「もう一度押してキャンセルした」 = レコードを削除する
         obj.delete()
         attending = False
 
+    # 4. 更新後の最新集計データを取得して返す
     summary = _attendance_summary(event, request.user)
     return JsonResponse({"attending": attending, "count": summary["count"], "names": summary["names"]})
 
@@ -230,13 +242,20 @@ def votes_summary(request, event_id):
 @login_required
 def attendees_list(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+    
+    # 【N+1問題の解消】
+    # .select_related('user') を付けないと、SQLが発行されまくる（参加者数N回）。
+    # これを付けることで、「参加データ」と「ユーザー情報」を1回のSQLで結合(JOIN)して取得する。
     qs = event.attendances.select_related('user').order_by('created_at')
+    
     names = []
+    # すでにメモリ上にユーザー情報があるので、ここでのアクセスはDB通信なしで爆速
     for a in qs:
         display_name = a.user.first_name or a.user.username
         is_checked_in = (a.checked_in_at is not None)
         names.append({'name': display_name, 'checked_in': is_checked_in})
     
+    # 自分が参加しているかどうか
     i_am = qs.filter(user=request.user).exists()
     return JsonResponse({'names': names, 'count': len(names), 'i_am': i_am})
 
@@ -295,25 +314,32 @@ def event_checkin(request, event_id, token):
     QRコードから叩かれる出席登録用ビュー。
     token が Event.checkin_token と一致したら出席を記録。
     """
+    # 1. イベントを取得
     event = get_object_or_404(Event, pk=event_id)
 
+    # 2. 【トークン検証】 
+    # URLに含まれるトークンが、DBの正しいトークンと一致するか確認
+    # セキュリティの要：これがあるからURLを推測して出席することができない
     if not token or token != (event.checkin_token or ""):
         return HttpResponseBadRequest("無効なトークンです。")
 
+    # 3. 参加レコードを取得（なければ作る＝飛び入り参加もOK）
     attendance, created = EventAttendance.objects.get_or_create(
         event=event,
         user=request.user,
     )
 
-    # QR読み込み時点で「出席時刻」を記録
+    # 4. 【出席時刻の記録】
+    # まだ出席していない場合のみ、現在時刻を記録する
     if not attendance.checked_in_at:
         attendance.checked_in_at = timezone.now()
         attendance.save()
         messages.success(request, f"{event.title} の出席を記録しました。")
     else:
+        # 既に記録済みならメッセージだけ変える（エラーにはしない）
         messages.info(request, f"{event.title} は既に出席済みです。")
 
-    # 好きな画面に戻す（カレンダーでOKならこれで）
+    # 5. カレンダー画面にリダイレクトして戻す
     return redirect("calendar")
 
 
