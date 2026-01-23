@@ -5,6 +5,10 @@ from django.db import models
 import uuid  # ★ 追加：トークン生成用
 
 class User(AbstractUser):
+    # 【Role Management】 ユーザーロールの定義
+    # member: 一般 (カレンダー閲覧・参加のみ)
+    # officer: 運営 (イベント作成・編集が可能)
+    # admin: 管理者 (Django管理画面に入れる)
     class Role(models.TextChoices):
         MEMBER  = "member", "一般"
         OFFICER = "officer", "運営"
@@ -22,7 +26,9 @@ class Event(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     # ★ 出席用QRコードトークン
-    # unique だが default は付けず、必要なときに ensure_checkin_token() で発行する
+    # 【Lazy Generation】 遅延生成パターン
+    # 最初は空っぽ(null)にしておき、QRコードを表示するボタンが押された瞬間に生成する。
+    # メリット：使われないイベントのために無駄なデータを生成しなくて済む。
     checkin_token = models.CharField(
         max_length=32,
         unique=True,
@@ -75,6 +81,10 @@ class EventAttendance(models.Model):
         on_delete=models.CASCADE,
         related_name="event_attendances",
     )
+    # 【Reservation vs Check-in】 予約と出席の分離
+    # レコード作成時 = 「予約 (参加表明)」
+    # checked_in_at に日時が入る = 「出席 (現地到着)」
+    # 1つのテーブルで2つの状態を管理する設計。
     checked_in_at = models.DateTimeField(null=True, blank=True, help_text="QRコードで出席記録した時間")
     created_at = models.DateTimeField(auto_now_add=True)
 

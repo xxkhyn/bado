@@ -1,5 +1,7 @@
 
 // ===== CSRF =====
+// DjangoのCSRF保護を通過するために、Cookieからトークンを取得する関数
+// これをFetchリクエストのヘッダー ('X-CSRFToken') にセットする必要がある。
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -8,6 +10,7 @@ function getCookie(name) {
 const csrftoken = getCookie('csrftoken');
 
 // ===== Config =====
+// HTMLの data属性 (dataset) から、現在表示している年月の情報を取得
 const cfg = document.getElementById('cfg');
 const CAL_YEAR = parseInt(cfg.dataset.year, 10);
 const CAL_MONTH = parseInt(cfg.dataset.month, 10);
@@ -284,6 +287,7 @@ async function loadAttendance(eventId) {
         }
 
         const iAm = typeof data.i_am === 'boolean' ? data.i_am : false;
+        // 【UI State】 自分の参加状態に応じてボタンの見た目を変える
         updateAttendBtn(iAm);
     } catch { }
 }
@@ -303,6 +307,10 @@ function updateAttendBtn(isAttending) {
 async function toggleAttendance() {
     if (!editingId) return;
     try {
+        // 【Optimistic UI】 (簡易実装)
+        // 本来はここで先に updateAttendBtn(!current) を呼んでおくと、
+        // ユーザーに「即座に反応した」と思わせることができる。今の実装はレスポンス待ち。
+
         const res = await fetch(`/api/events/${editingId}/vote/`, {
             method: 'POST',
             headers: {
@@ -310,6 +318,7 @@ async function toggleAttendance() {
             }
         });
         if (!res.ok) {
+            // 【Error Handling】 403 Forbidden は「イベント終了」を意味する
             if (res.status === 403) {
                 alert('イベント終了後は変更できません');
             } else {
@@ -317,6 +326,7 @@ async function toggleAttendance() {
             }
             return;
         }
+        // サーバーから返ってきた最新の「正解データ」でUIを更新する
         const data = await res.json();
         updateAttendBtn(data.attending);
         attendCount.textContent = `${data.count}名`;

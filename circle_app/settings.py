@@ -99,7 +99,9 @@ WSGI_APPLICATION = 'circle_app.wsgi.application'
 
 
 # Database
-DATABASES = {
+    # 【Performance Tuning】
+    # conn_max_age=600 (10分): DB接続を毎回切らずに使い回す設定。
+    # 特にRender(Web)とSupabase(DB)が離れている場合、SSLハンドシェイクのオーバーヘッドを劇的に減らせる。
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
         conn_max_age=600,
@@ -107,6 +109,8 @@ DATABASES = {
     )
 }
 
+# 【Security】 CSRF信頼済みオリジン
+# RenderのドメインからのPOSTリクエストを許可する設定。
 CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]
 
 
@@ -157,8 +161,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = "core.User"
 
 # ログイン後の遷移先など
+# ログイン後の遷移先など
 LOGIN_REDIRECT_URL = "home"
 ACCOUNT_LOGOUT_REDIRECT_URL = "home"
+
+# 【User Experience vs Security】 メール確認の設定
+# "mandatory": メール確認必須
+# "optional": 確認しなくても使える
+# "none": 確認メールを送らない（デモ用・開発用）
+# ※ 面接では「デモ用にOFFにしていますが、設定1つでONにできます」と答えると良い。
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_LOGIN_METHODS = {'email', 'username'}
 ACCOUNT_EMAIL_REQUIRED = True
