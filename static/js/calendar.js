@@ -340,7 +340,7 @@ const teamDivBtn = document.getElementById('teamDivBtn');
 if (teamDivBtn) {
     teamDivBtn.addEventListener('click', () => {
         if (editingId) {
-            window.location.href = `/events/${editingId}/team_division/`;
+            window.location.href = `/events/${editingId}/teams/`;
         }
     });
 }
