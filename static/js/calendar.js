@@ -310,7 +310,11 @@ async function toggleAttendance() {
             }
         });
         if (!res.ok) {
-            alert('更新に失敗しました');
+            if (res.status === 403) {
+                alert('イベント終了後は変更できません');
+            } else {
+                alert('更新に失敗しました');
+            }
             return;
         }
         const data = await res.json();

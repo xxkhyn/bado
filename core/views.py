@@ -198,6 +198,8 @@ def event_vote(request, event_id):
     返り値: { attending: bool, count: int, names: [...](先頭10) }
     """
     event = get_object_or_404(Event, id=event_id)
+    if timezone.now() > event.end:
+        return JsonResponse({"error": "イベントは終了しました"}, status=403)
     obj, created = EventAttendance.objects.get_or_create(event=event, user=request.user)
     if created:
         attending = True
