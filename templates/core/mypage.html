@@ -40,21 +40,23 @@
                 <span style="font-size: 1.2rem;">🚀</span> 参加予定のイベント
             </h3>
 
-            {% if upcoming_events %}
+            {% if upcoming_attendances %}
             <div style="display: grid; gap: 12px;">
-                {% for event in upcoming_events %}
+                {% for attendance in upcoming_attendances %}
                 <div class="event-card">
                     <div class="event-date">
                         <div style="font-size: 0.75rem; color: var(--brand-primary); font-weight: 700;">{{
-                            event.start|date:"M" }}</div>
-                        <div style="font-size: 1.2rem; font-weight: 800;">{{ event.start|date:"d" }}</div>
+                            attendance.event.start|date:"M" }}</div>
+                        <div style="font-size: 1.2rem; font-weight: 800;">{{ attendance.event.start|date:"d" }}</div>
                     </div>
                     <div style="flex: 1;">
-                        <div style="font-weight: 700; font-size: 1rem; margin-bottom: 4px;">{{ event.title }}</div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ event|time_range }}</div>
+                        <div style="font-weight: 700; font-size: 1rem; margin-bottom: 4px;">{{ attendance.event.title }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ attendance.event|time_range }}
+                        </div>
                     </div>
-                    <a href="{% url 'calendar' %}?y={{ event.start.year }}&m={{ event.start.month }}" class="btn"
-                        style="font-size: 0.8rem; padding: 6px 12px;">詳細</a>
+                    <a href="{% url 'calendar' %}?y={{ attendance.event.start.year }}&m={{ attendance.event.start.month }}"
+                        class="btn" style="font-size: 0.8rem; padding: 6px 12px;">詳細</a>
                 </div>
                 {% endfor %}
             </div>
@@ -71,17 +73,41 @@
                 <span style="font-size: 1.2rem;">📜</span> 過去の活動
             </h3>
 
-            {% if past_events %}
+            {% if past_attendances %}
             <div style="display: grid; gap: 12px;">
-                {% for event in past_events %}
-                <div class="event-card" style="opacity: 0.8;">
+                {% for attendance in past_attendances %}
+                <div class="event-card" style="opacity: 0.9;">
                     <div class="event-date" style="color: var(--text-muted);">
-                        <div style="font-size: 0.75rem;">{{ event.start|date:"Y" }}</div>
-                        <div style="font-size: 0.9rem; font-weight: 700;">{{ event.start|date:"m/d" }}</div>
+                        <div style="font-size: 0.75rem;">{{ attendance.event.start|date:"Y" }}</div>
+                        <div style="font-size: 0.9rem; font-weight: 700;">{{ attendance.event.start|date:"m/d" }}</div>
                     </div>
                     <div style="flex: 1;">
-                        <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-dim);">{{ event.title }}
+                        <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-dim); margin-bottom: 4px;">
+                            {{ attendance.event.title }}</div>
+
+                        <!-- Status Badge -->
+                        <div>
+                            {% if attendance.checked_in_at %}
+                            <span style="
+                                display: inline-flex; align-items: center; gap: 4px;
+                                background: var(--accent-success); color: white;
+                                font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 700;">
+                                ✅ 出席済
+                            </span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 4px;">
+                                {{ attendance.checked_in_at|date:"H:i" }}
+                            </span>
+                            {% else %}
+                            <span
+                                style="
+                                display: inline-flex; align-items: center; gap: 4px;
+                                background: var(--bg-surface-2); color: var(--text-muted);
+                                font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 600; border: 1px solid var(--border-color);">
+                                🎫 予約のみ
+                            </span>
+                            {% endif %}
                         </div>
+
                     </div>
                 </div>
                 {% endfor %}
