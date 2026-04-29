@@ -43,6 +43,9 @@ class ProfileForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["grade"].choices = [("", "未設定")] + list(User.Grade.choices)
         self.fields["faculty"].choices = [("", "未設定")] + list(User.Faculty.choices)
+        self.fields["grade"].required = True
+        self.fields["faculty"].required = True
+        self.fields["experience_years"].required = True
         self.fields["role"].label = "役職を選択してください"
 
     def clean(self):

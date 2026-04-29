@@ -40,6 +40,10 @@ class User(AbstractUser):
     experience_years = models.PositiveSmallIntegerField(null=True, blank=True)
     faculty = models.CharField(max_length=32, choices=Faculty.choices, blank=True)
 
+    @property
+    def is_circle_profile_complete(self):
+        return bool(self.grade and self.faculty and self.experience_years is not None)
+
 
 class Event(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

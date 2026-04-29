@@ -18,6 +18,22 @@ class HealthzTest(TestCase):
 
 
 class ProfileEditTest(TestCase):
+    def test_incomplete_profile_redirects_to_profile_edit(self):
+        user = User.objects.create_user(username='new-user', password='password', role=User.Role.MEMBER)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('calendar'))
+
+        self.assertRedirects(response, reverse('profile_edit'))
+
+    def test_profile_edit_page_is_available_for_incomplete_profile(self):
+        user = User.objects.create_user(username='new-user', password='password', role=User.Role.MEMBER)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('profile_edit'))
+
+        self.assertEqual(response.status_code, 200)
+
     def test_member_can_update_circle_profile_fields(self):
         user = User.objects.create_user(username='profile-user', password='password', role=User.Role.MEMBER)
         self.client.force_login(user)
@@ -40,10 +56,24 @@ class ProfileEditTest(TestCase):
 class EventSharingTest(TestCase):
     def setUp(self):
         # Create an officer who can create events
-        self.officer = User.objects.create_user(username='officer', password='password', role=User.Role.OFFICER)
+        self.officer = User.objects.create_user(
+            username='officer',
+            password='password',
+            role=User.Role.OFFICER,
+            grade=User.Grade.B3,
+            experience_years=4,
+            faculty=User.Faculty.SCIENCE_ENGINEERING,
+        )
         
         # Create a regular member
-        self.member = User.objects.create_user(username='member', password='password', role=User.Role.MEMBER)
+        self.member = User.objects.create_user(
+            username='member',
+            password='password',
+            role=User.Role.MEMBER,
+            grade=User.Grade.B1,
+            experience_years=1,
+            faculty=User.Faculty.HUMANITIES,
+        )
         
         # Officer creates an event
         self.event_start = timezone.now() + datetime.timedelta(days=1)
