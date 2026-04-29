@@ -18,12 +18,75 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 import qrcode
 
-from .models import Event, MagazineIssue, EventAttendance, User
+from .models import ChatMessage, Event, MagazineIssue, EventAttendance, User
 from .forms import MagazineUploadForm, ProfileForm
 
 
 def healthz(request):
     return JsonResponse({"status": "ok"})
+
+
+def _chat_message_payload(message, viewer=None):
+    user = message.user
+    return {
+        "id": message.id,
+        "body": message.body,
+        "author": user.first_name or user.username,
+        "author_initial": (user.first_name or user.username or "?")[0].upper(),
+        "created_at": timezone.localtime(message.created_at).strftime("%Y/%m/%d %H:%M"),
+        "can_delete": bool(viewer and (viewer.is_staff or viewer == user)),
+    }
+
+
+@login_required
+def chat_room(request):
+    messages_qs = (
+        ChatMessage.objects
+        .filter(is_deleted=False)
+        .select_related("user")
+        .order_by("-created_at")[:50]
+    )
+    chat_messages = [_chat_message_payload(message, request.user) for message in reversed(messages_qs)]
+    return render(request, "core/chat.html", {"chat_messages": chat_messages})
+
+
+@login_required
+def chat_messages_json(request):
+    after_id = request.GET.get("after")
+    messages_qs = ChatMessage.objects.filter(is_deleted=False).select_related("user").order_by("created_at")
+    if after_id and after_id.isdigit():
+        messages_qs = messages_qs.filter(id__gt=int(after_id))
+    else:
+        messages_qs = messages_qs.order_by("-created_at")[:50]
+        messages_qs = reversed(list(messages_qs))
+
+    return JsonResponse({"messages": [_chat_message_payload(message, request.user) for message in messages_qs]})
+
+
+@login_required
+@require_http_methods(["POST"])
+def chat_message_add(request):
+    data = json.loads(request.body or "{}")
+    body = (data.get("body") or "").strip()
+    if not body:
+        return JsonResponse({"error": "message is required"}, status=400)
+    if len(body) > 500:
+        return JsonResponse({"error": "message is too long"}, status=400)
+
+    message = ChatMessage.objects.create(user=request.user, body=body)
+    return JsonResponse({"message": _chat_message_payload(message, request.user)}, status=201)
+
+
+@login_required
+@require_http_methods(["POST"])
+def chat_message_delete(request, message_id):
+    message = get_object_or_404(ChatMessage, pk=message_id, is_deleted=False)
+    if not (request.user.is_staff or request.user == message.user):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    message.is_deleted = True
+    message.save(update_fields=["is_deleted"])
+    return JsonResponse({"status": "deleted"})
 
 
 def _make_aware(dt):

@@ -14,6 +14,7 @@ urlpatterns = [
     # メインページ
     path("", core_views.home, name="home"),
     path("calendar/", core_views.calendar_view, name="calendar"),
+    path("chat/", core_views.chat_room, name="chat"),
     path("mypage/", core_views.mypage, name="mypage"),
     path("profile/edit/", core_views.profile_edit, name="profile_edit"),  # ★ プロフィール編集
 
@@ -25,6 +26,9 @@ urlpatterns = [
     path("api/events/<int:event_id>/vote/", core_views.event_vote, name="event_vote"),  # ← 参加トグル用
     path("api/events/<int:event_id>/attendees/", core_views.attendees_list, name="attendees_list"),
     path("events/<int:event_id>/teams/", core_views.team_division, name="team_division"),  # ★ チーム分け
+    path("api/chat/messages/", core_views.chat_messages_json, name="chat_messages_json"),
+    path("api/chat/messages/add/", core_views.chat_message_add, name="chat_message_add"),
+    path("api/chat/messages/<int:message_id>/delete/", core_views.chat_message_delete, name="chat_message_delete"),
 
         # ★ QR 出席用
     path("events/<int:event_id>/qr/", core_views.event_qr, name="event_qr"),

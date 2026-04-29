@@ -27,6 +27,10 @@
     <nav class="tabs" aria-label="Primary">
       <a class="tab {% if request.resolver_match.url_name == 'calendar' or request.resolver_match.url_name == 'home' %}active{% endif %}"
         href="{% url 'calendar' %}">📅 カレンダー</a>
+      {% if user.is_authenticated %}
+      <a class="tab {% if request.resolver_match.url_name == 'chat' %}active{% endif %}"
+        href="{% url 'chat' %}">💬 チャット</a>
+      {% endif %}
       <a class="tab {% if request.resolver_match.url_name == 'magazines_list' %}active{% endif %}"
         href="{% url 'magazines_list' %}">📖 月刊誌</a>
     </nav>
@@ -53,6 +57,7 @@
         <div class="hdr">{{ user.email }}</div>
         <a href="{% url 'mypage' %}" role="menuitem">マイページ</a>
         <a href="{% url 'calendar' %}" role="menuitem">カレンダー</a>
+        <a href="{% url 'chat' %}" role="menuitem">チャット</a>
         <a href="{% url 'magazines_list' %}" role="menuitem">月刊誌</a>
         <a href="{% url 'profile_edit' %}" role="menuitem">アカウント設定</a>
         <a href="/accounts/logout/" role="menuitem">ログアウト</a>
@@ -80,6 +85,10 @@
       <span>月刊誌</span>
     </a>
     {% if user.is_authenticated %}
+    <a href="{% url 'chat' %}" class="{% if request.resolver_match.url_name == 'chat' %}active{% endif %}">
+      <span>💬</span>
+      <span>チャット</span>
+    </a>
     <a href="{% url 'mypage' %}" class="{% if request.resolver_match.url_name == 'mypage' %}active{% endif %}">
       <span>👤</span>
       <span>マイページ</span>

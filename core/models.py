@@ -99,6 +99,23 @@ class MagazineIssue(models.Model):
 
 
 # 👇 参加している人だけ1行持つ
+class ChatMessage(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="chat_messages",
+    )
+    body = models.CharField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.user}: {self.body[:30]}"
+
+
 class EventAttendance(models.Model):
     event = models.ForeignKey(
         "core.Event",

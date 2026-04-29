@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from .models import Event, MagazineIssue, EventAttendance, User
+from .models import ChatMessage, Event, MagazineIssue, EventAttendance, User
 
 
 @admin.register(User)
@@ -34,3 +34,10 @@ class EventAttendanceAdmin(admin.ModelAdmin):
     list_display = ("event", "user", "created_at")
     list_filter = ("event",)
     search_fields = ("user__username", "event__title")
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ("user", "body", "created_at", "is_deleted")
+    list_filter = ("is_deleted", "created_at")
+    search_fields = ("user__username", "body")

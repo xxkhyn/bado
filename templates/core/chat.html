@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}全体チャット | bado{% endblock %}
+
+{% block content %}
+<div class="chat-page">
+    <div class="chat-header">
+        <div>
+            <h1>全体チャット</h1>
+            <p>サークル全体への連絡や軽い相談に使えます。</p>
+        </div>
+    </div>
+
+    <div id="chatMessages" class="chat-messages" aria-live="polite">
+        {% for message in chat_messages %}
+        <div class="chat-message {% if message.can_delete %}own{% endif %}" data-message-id="{{ message.id }}">
+            <div class="chat-avatar">{{ message.author_initial }}</div>
+            <div class="chat-bubble">
+                <div class="chat-meta">
+                    <strong>{{ message.author }}</strong>
+                    <span>{{ message.created_at }}</span>
+                    {% if message.can_delete %}
+                    <button class="chat-delete" type="button" data-message-id="{{ message.id }}">削除</button>
+                    {% endif %}
+                </div>
+                <div class="chat-body">{{ message.body|linebreaksbr }}</div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="chat-empty">まだメッセージはありません。</div>
+        {% endfor %}
+    </div>
+
+    <form id="chatForm" class="chat-form">
+        {% csrf_token %}
+        <textarea id="chatInput" maxlength="500" rows="2" placeholder="メッセージを入力"></textarea>
+        <button type="submit" class="btn-primary">送信</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block body_end %}
+<script>
+    const messagesEl = document.getElementById("chatMessages");
+    const formEl = document.getElementById("chatForm");
+    const inputEl = document.getElementById("chatInput");
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+    function latestMessageId() {
+        const messages = messagesEl.querySelectorAll("[data-message-id]");
+        if (!messages.length) return 0;
+        return Number(messages[messages.length - 1].dataset.messageId);
+    }
+
+    function escapeHtml(value) {
+        return value
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function renderMessage(message) {
+        const wrapper = document.createElement("div");
+        wrapper.className = `chat-message ${message.can_delete ? "own" : ""}`;
+        wrapper.dataset.messageId = message.id;
+        const safeBody = escapeHtml(message.body).replaceAll("\n", "<br>");
+        wrapper.innerHTML = `
+            <div class="chat-avatar">${escapeHtml(message.author_initial)}</div>
+            <div class="chat-bubble">
+                <div class="chat-meta">
+                    <strong>${escapeHtml(message.author)}</strong>
+                    <span>${escapeHtml(message.created_at)}</span>
+                    ${message.can_delete ? `<button class="chat-delete" type="button" data-message-id="${message.id}">削除</button>` : ""}
+                </div>
+                <div class="chat-body">${safeBody}</div>
+            </div>
+        `;
+        return wrapper;
+    }
+
+    function appendMessages(messages) {
+        if (!messages.length) return;
+        const empty = messagesEl.querySelector(".chat-empty");
+        if (empty) empty.remove();
+        const shouldStickToBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+        messages.forEach(message => messagesEl.appendChild(renderMessage(message)));
+        if (shouldStickToBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function fetchMessages() {
+        const response = await fetch(`/api/chat/messages/?after=${latestMessageId()}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        appendMessages(data.messages || []);
+    }
+
+    formEl.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const body = inputEl.value.trim();
+        if (!body) return;
+        inputEl.disabled = true;
+
+        try {
+            const response = await fetch("{% url 'chat_message_add' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({ body }),
+            });
+            if (!response.ok) throw new Error("failed");
+            const data = await response.json();
+            inputEl.value = "";
+            appendMessages([data.message]);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        } finally {
+            inputEl.disabled = false;
+            inputEl.focus();
+        }
+    });
+
+    messagesEl.addEventListener("click", async (event) => {
+        const button = event.target.closest(".chat-delete");
+        if (!button) return;
+        const messageId = button.dataset.messageId;
+        const response = await fetch(`/api/chat/messages/${messageId}/delete/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": csrfToken },
+        });
+        if (response.ok) {
+            messagesEl.querySelector(`[data-message-id="${messageId}"]`)?.remove();
+        }
+    });
+
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    setInterval(fetchMessages, 5000);
+</script>
+{% endblock %}

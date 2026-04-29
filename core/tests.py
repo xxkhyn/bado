@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
-from .models import Event
+from .models import ChatMessage, Event
 import json
 import datetime
 
@@ -51,6 +51,42 @@ class ProfileEditTest(TestCase):
         self.assertEqual(user.grade, User.Grade.B2)
         self.assertEqual(user.experience_years, 3)
         self.assertEqual(user.faculty, User.Faculty.SCIENCE_ENGINEERING)
+
+
+class ChatTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='chat-user',
+            password='password',
+            role=User.Role.MEMBER,
+            grade=User.Grade.B2,
+            experience_years=2,
+            faculty=User.Faculty.EDUCATION,
+        )
+        self.client.force_login(self.user)
+
+    def test_chat_page_requires_login_and_loads(self):
+        response = self.client.get(reverse('chat'))
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_user_can_post_chat_message(self):
+        response = self.client.post(
+            reverse('chat_message_add'),
+            data=json.dumps({'body': 'Hello circle'}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(ChatMessage.objects.filter(user=self.user, body='Hello circle').exists())
+
+    def test_user_can_fetch_chat_messages(self):
+        ChatMessage.objects.create(user=self.user, body='Visible message')
+
+        response = self.client.get(reverse('chat_messages_json'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['messages'][0]['body'], 'Visible message')
 
 
 class EventSharingTest(TestCase):
