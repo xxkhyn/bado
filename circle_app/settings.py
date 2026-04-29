@@ -99,6 +99,7 @@ WSGI_APPLICATION = 'circle_app.wsgi.application'
 
 
 # Database
+DATABASE_URL = os.environ.get("DATABASE_URL")
 DATABASES = {
     # 【Performance Tuning】
     # conn_max_age=600 (10分): DB接続を毎回切らずに使い回す設定。
@@ -106,7 +107,7 @@ DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
         conn_max_age=600,
-        ssl_require=True
+        ssl_require=bool(DATABASE_URL and not DATABASE_URL.startswith("sqlite")),
     )
 }
 
