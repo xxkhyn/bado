@@ -5,6 +5,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path("healthz/", core_views.healthz, name="healthz"),
+
     # 管理画面 & アカウント
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),

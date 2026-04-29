@@ -22,6 +22,10 @@ from .models import Event, MagazineIssue, EventAttendance, User
 from .forms import MagazineUploadForm, ProfileForm
 
 
+def healthz(request):
+    return JsonResponse({"status": "ok"})
+
+
 def _make_aware(dt):
     """naive な datetime を現在のタイムゾーンで aware にする（必要なら）"""
     if dt is None:

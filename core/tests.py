@@ -8,6 +8,15 @@ import datetime
 
 User = get_user_model()
 
+
+class HealthzTest(TestCase):
+    def test_healthz_is_public_and_lightweight(self):
+        response = self.client.get(reverse('healthz'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+
 class EventSharingTest(TestCase):
     def setUp(self):
         # Create an officer who can create events
