@@ -17,6 +17,26 @@ class HealthzTest(TestCase):
         self.assertEqual(response.json(), {"status": "ok"})
 
 
+class ProfileEditTest(TestCase):
+    def test_member_can_update_circle_profile_fields(self):
+        user = User.objects.create_user(username='profile-user', password='password', role=User.Role.MEMBER)
+        self.client.force_login(user)
+
+        response = self.client.post(reverse('profile_edit'), {
+            'grade': User.Grade.B2,
+            'experience_years': 3,
+            'faculty': User.Faculty.SCIENCE_ENGINEERING,
+            'role': User.Role.MEMBER,
+            'secret_code': '',
+        })
+
+        self.assertRedirects(response, reverse('profile_edit'))
+        user.refresh_from_db()
+        self.assertEqual(user.grade, User.Grade.B2)
+        self.assertEqual(user.experience_years, 3)
+        self.assertEqual(user.faculty, User.Faculty.SCIENCE_ENGINEERING)
+
+
 class EventSharingTest(TestCase):
     def setUp(self):
         # Create an officer who can create events

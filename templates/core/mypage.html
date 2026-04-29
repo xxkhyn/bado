@@ -13,6 +13,18 @@
         </div>
         <h1 style="font-size: 1.5rem; font-weight: 800; margin: 0;">{{ user.username }}</h1>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">{{ user.email }}</p>
+        <div class="profile-meta">
+            <span>{{ user.get_grade_display|default:"学年未設定" }}</span>
+            <span>{{ user.get_faculty_display|default:"学部未設定" }}</span>
+            <span>
+                {% if user.experience_years is not None %}
+                経験{{ user.experience_years }}年
+                {% else %}
+                経験年数未設定
+                {% endif %}
+            </span>
+        </div>
+        <a href="{% url 'profile_edit' %}" class="btn" style="margin-top: 14px; font-size: 0.85rem; padding: 7px 14px;">プロフィール編集</a>
     </div>
 
     <!-- Stats Card -->

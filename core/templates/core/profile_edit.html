@@ -29,9 +29,30 @@
             <div class="form-value">{{ user.email }}</div>
         </div>
 
+        <div class="form-grid">
+            <div class="form-group">
+                <label>{{ form.grade.label }}</label>
+                {{ form.grade }}
+                {{ form.grade.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>{{ form.experience_years.label }}</label>
+                {{ form.experience_years }}
+                {{ form.experience_years.errors }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>{{ form.faculty.label }}</label>
+            {{ form.faculty }}
+            {{ form.faculty.errors }}
+        </div>
+
         <div class="form-group">
             <label>{{ form.role.label }}</label>
             {{ form.role }}
+            {{ form.role.errors }}
         </div>
 
         <div class="form-group" id="secret_container" style="display:none;">
@@ -45,15 +66,21 @@
 
         <div class="form-actions">
             <button type="submit" class="btn-primary">保存する</button>
-            <a href="{% url 'home' %}" class="btn-secondary">戻る</a>
+            <a href="{% url 'mypage' %}" class="btn-secondary">戻る</a>
         </div>
     </form>
 </div>
 
 <style>
     .styled-form {
-        max-width: 500px;
+        max-width: 560px;
         margin: 0 auto;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
     }
 
     .form-value {
@@ -61,14 +88,34 @@
         color: #888;
     }
 
+    .form-control,
+    .styled-form select,
+    .styled-form input[type="number"],
+    .styled-form input[type="password"] {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color, #ddd);
+        background: var(--bg-main, #fff);
+        color: var(--text-main, #111);
+    }
+
     ul#id_role {
         list-style: none;
         padding: 0;
+        margin: 8px 0 0;
     }
 
     ul#id_role li {
         display: inline-block;
         margin-right: 20px;
+    }
+
+    @media (max-width: 640px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -83,16 +130,11 @@
                 if (r.checked && r.value === "officer") isOfficer = true;
             });
 
-            // "officer" is selected -> show secret field
-            if (isOfficer) {
-                secretField.style.display = "block";
-            } else {
-                secretField.style.display = "none";
-            }
+            secretField.style.display = isOfficer ? "block" : "none";
         }
 
         roleRadios.forEach(r => r.addEventListener('change', toggleSecret));
-        toggleSecret(); // initial check
+        toggleSecret();
     });
 </script>
 {% endblock %}

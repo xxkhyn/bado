@@ -13,7 +13,32 @@ class User(AbstractUser):
         MEMBER  = "member", "一般"
         OFFICER = "officer", "運営"
         ADMIN   = "admin",   "管理者"
+
+    class Grade(models.TextChoices):
+        B1 = "b1", "1年"
+        B2 = "b2", "2年"
+        B3 = "b3", "3年"
+        B4 = "b4", "4年"
+        B5 = "b5", "5年"
+        B6 = "b6", "6年"
+        M1 = "m1", "修士1年"
+        M2 = "m2", "修士2年"
+        D1 = "d1", "博士1年"
+        D2 = "d2", "博士2年"
+        D3 = "d3", "博士3年"
+        OTHER = "other", "その他"
+
+    class Faculty(models.TextChoices):
+        HUMANITIES = "humanities", "人文社会科学部"
+        EDUCATION = "education", "教育学部"
+        SCIENCE_ENGINEERING = "science_engineering", "理工学部"
+        AGRICULTURE = "agriculture", "農学部"
+        VETERINARY = "veterinary", "獣医学部"
+
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.MEMBER)
+    grade = models.CharField(max_length=10, choices=Grade.choices, blank=True)
+    experience_years = models.PositiveSmallIntegerField(null=True, blank=True)
+    faculty = models.CharField(max_length=32, choices=Faculty.choices, blank=True)
 
 
 class Event(models.Model):

@@ -3,20 +3,22 @@
 {% block title %}メンバー管理{% endblock %}
 
 {% block content %}
-<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+<div style="max-width: 1040px; margin: 0 auto; padding: 20px;">
+    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
         <h1 style="margin: 0; font-size: 1.5rem;">メンバー管理</h1>
         <a href="{% url 'calendar' %}" class="btn gray">カレンダーに戻る</a>
     </div>
 
     <div class="card"
-        style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden;">
-        <table style="width: 100%; border-collapse: collapse;">
+        style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; overflow-x: auto;">
+        <table style="width: 100%; min-width: 900px; border-collapse: collapse;">
             <thead style="background: var(--bg-main); border-bottom: 1px solid var(--border-subtle);">
                 <tr>
                     <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">ユーザー名</th>
-                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">メールアドレス
-                    </th>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">メール</th>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">学年</th>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">所属学部</th>
+                    <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">経験年数</th>
                     <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">登録日</th>
                     <th style="padding: 12px; text-align: left; font-size: 0.9rem; color: var(--text-muted);">役職</th>
                 </tr>
@@ -38,13 +40,17 @@
                         </div>
                     </td>
                     <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">{{ u.email }}</td>
-                    <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">{{
-                        u.date_joined|date:"Y/m/d" }}</td>
+                    <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">{{ u.get_grade_display|default:"-" }}</td>
+                    <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">{{ u.get_faculty_display|default:"-" }}</td>
+                    <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">
+                        {% if u.experience_years is not None %}{{ u.experience_years }}年{% else %}-{% endif %}
+                    </td>
+                    <td style="padding: 12px; font-size: 0.9rem; color: var(--text-muted);">{{ u.date_joined|date:"Y/m/d" }}</td>
                     <td style="padding: 12px;">
-                        <select class="role-select" data-user-id="{{ u.id }}"
+                        <select class="role-select" data-user-id="{{ u.id }}" data-original-value="{{ u.role }}"
                             style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-default); background: var(--bg-main); color: var(--text-main);">
                             {% for val, label in roles.choices %}
-                            <option value="{{ val }}" {% if u.role==val %}selected{% endif %}>{{ label }}</option>
+                            <option value="{{ val }}" {% if u.role == val %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </td>
@@ -67,8 +73,7 @@
         select.addEventListener('change', async (e) => {
             const userId = e.target.dataset.userId;
             const newRole = e.target.value;
-
-            // Visual feedback
+            const originalValue = e.target.dataset.originalValue;
             const originalBg = e.target.style.background;
             e.target.disabled = true;
 
@@ -83,15 +88,16 @@
                 });
 
                 if (res.ok) {
-                    e.target.style.background = '#dcfce7'; // Success green
+                    e.target.dataset.originalValue = newRole;
+                    e.target.style.background = '#dcfce7';
                     setTimeout(() => { e.target.style.background = originalBg; }, 1000);
                 } else {
                     throw new Error();
                 }
             } catch {
                 alert('更新に失敗しました');
-                e.target.value = e.target.getAttribute('data-original-value'); // Reset (needs implementation if strict)
-                e.target.style.background = '#fee2e2'; // Error red
+                e.target.value = originalValue;
+                e.target.style.background = '#fee2e2';
             } finally {
                 e.target.disabled = false;
             }

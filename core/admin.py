@@ -1,5 +1,18 @@
 from django.contrib import admin
-from .models import Event, MagazineIssue, EventAttendance
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from .models import Event, MagazineIssue, EventAttendance, User
+
+
+@admin.register(User)
+class UserAdmin(DjangoUserAdmin):
+    list_display = ("username", "email", "grade", "faculty", "experience_years", "role", "is_staff")
+    list_filter = ("role", "grade", "faculty", "is_staff", "is_superuser")
+    fieldsets = DjangoUserAdmin.fieldsets + (
+        ("サークルプロフィール", {"fields": ("grade", "faculty", "experience_years", "role")}),
+    )
+    add_fieldsets = DjangoUserAdmin.add_fieldsets + (
+        ("サークルプロフィール", {"fields": ("grade", "faculty", "experience_years", "role")}),
+    )
 
 
 @admin.register(Event)
